@@ -1,0 +1,93 @@
+---
+title: "Annotations"
+description: "Rectangles, lines and texts drawn anywhere on the chart."
+---
+
+An annotation is a shape or a text placed on the chart: a box around a session, a horizontal level, a label. Unlike a series, it is not tied to one bar.
+
+## Creating an annotation
+
+Create it, set it, add it to a group. From then on it is drawn.
+
+```csharp
+var box = VAn.CreateAnnotation(AnnotationType.Rectangle);
+box.X = firstIndex + 0.5;
+box.X2 = lastIndex + 1.5;
+box.Y = high;
+box.Y2 = low;
+box.LineColor = BoxColor;
+box.BackColor = BoxColor.WithOpacity(25);
+VAn.AddAnnotation(group, box);
+```
+
+Common types: `Line`, `Rectangle`, `Text`, `HorizontalLine`, `VerticalLine`, `HorizontalRay`, `Ellipse`, `Triangle`, `ArrowUp`, `ArrowDown`, `Diamond`.
+
+To change an annotation later, set its properties again. To remove it, call `group.RemoveAnnotation(annotation)`.
+
+## Coordinates
+
+By default the coordinates are **absolute**: a bar and a value of the Y axis.
+
+- `Y`, `Y2` are prices (or values of the area the annotation is in).
+- `X`, `X2` are positions on the bars: **the bar of index `i` is at `i + 1`**. A bar is one unit wide, from `i + 0.5` to `i + 1.5`. A value beyond the last bar is in the future.
+
+Other coordinate types, set with `CoordinateXType` and `CoordinateYType`:
+
+| Type | Meaning |
+|---|---|
+| `Absolute` | bars and values (the default) |
+| `Relative` | a position in the chart area, from `0` to `1`: the annotation stays in place while the chart scrolls |
+| `Pixel` | pixels from the edge of the chart area |
+
+```csharp
+label.CoordinateXType = CoordinateTypeEnum.Relative;
+label.CoordinateYType = CoordinateTypeEnum.Relative;
+label.X = 0.02;
+label.Y = 0.95;
+```
+
+## Groups
+
+Annotations are kept in groups. The indicator has two of its own:
+
+| Group | Use |
+|---|---|
+| `IndVars.Ann_List` | the annotations of the indicator |
+| `IndVars.FrontAnnList` | annotations drawn on the foreground, over the bars and the other indicators |
+
+A group holds **either annotations or other groups**, not both. For a few annotations, add them directly to `IndVars.Ann_List`. When you have different kinds, create one group per kind:
+
+```csharp
+public override void OnLoad()
+{
+    boxes = VAn.CreateAnnGroup();
+    labels = VAn.CreateAnnGroup();
+    IndVars.Ann_List.AddGroup(boxes);
+    IndVars.Ann_List.AddGroup(labels);
+}
+```
+
+The chart empties the groups of the indicator before every calculation, so create your groups and your fixed annotations in `OnLoad`.
+
+## Which area
+
+An annotation is drawn in the main area of the chart (the price) unless you say otherwise:
+
+```csharp
+annotation.Area = ChartArea;          // the area the user placed the indicator in
+annotation.Area = ChartAreaRef.Main;  // the price area (the default)
+```
+
+## Text
+
+| Property | Meaning |
+|---|---|
+| `Text` | the text. A `Text` annotation is placed at `X`, `Y` |
+| `ForeColor` | color of the text |
+| `FontSize`, `FontBold` | font |
+| `TextAlign` | alignment relative to the position |
+| `BackColor`, `LineColor` | background and border |
+
+## Performance
+
+Annotations which change often are cheap: only what changed is redrawn or sent. What costs is their number. When an indicator creates annotations for every bar, remove the old ones or limit how many sessions it draws, as the [Session Range Box](/examples/session-range-box) example does.

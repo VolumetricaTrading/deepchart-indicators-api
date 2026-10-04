@@ -1,0 +1,45 @@
+---
+title: "Hybrid indicators"
+description: "One dll for the desktop chart and for the server."
+---
+
+A hybrid indicator is written once and can be calculated in two places:
+
+- **on the desktop**, by the chart of the user, like a built-in indicator;
+- **on the server**, which calculates it once for every chart with the same symbol, bars and parameters, and sends what it draws to the charts which show it.
+
+The code is the same. What makes it possible is that the indicator never touches the chart directly.
+
+## The portable API
+
+| The indicator uses | Instead of |
+|---|---|
+| `VAn` (`IMethodCloudAPI`) to read bars and create objects | the chart |
+| `IChartSeries`, `IChartPoint` | the series of the chart control |
+| `IAnnotation`, `IAnnGroup` | the annotations of the chart control |
+| `IAxis` | the axis of the chart control |
+| `ColorRef` | a resolved color |
+
+On the desktop these interfaces are the real objects of the chart, with no layer in between. On the server they are objects which record what the indicator draws.
+
+## What is different on the server
+
+The server has no user in front of it. So:
+
+- **The style of a series is not there.** Colors, width and style of a series are settings of each user. The indicator declares the defaults in the series attribute, the chart of each user applies its own.
+- **Colors stay references.** A theme color or a series color is resolved by each chart, see [Colors](/concepts/colors).
+- **The history is calculated with `OnOpen` and `OnClose`.** The trades of the history are not replayed.
+- **Messages and sounds do nothing** for now.
+- **Some data does not exist**: the order book, other indicators of the chart, other symbols. These members are [desktop only](/hybrid/desktop-only).
+
+## Writing code which works in both places
+
+- Use theme colors and series colors, not fixed ones, for anything the user should be able to change.
+- Take the history from the bars (`BarVars`, `VolTotList`, volume by price) and use `OnTick` for realtime only.
+- Do not keep state in static fields: the server runs many instances of the same indicator.
+- Do not read the clock, files or the network. An indicator has to give the same result for the same bars.
+- Keep `OnLoad` complete: everything a calculation needs is reset there.
+
+## Checking your indicator
+
+An indicator which uses only the portable API can be calculated on the server. One which uses a `[DesktopOnly]` member still works on your chart, and is calculated on the desktop wherever it is used. The [Book Imbalance](/examples/book-imbalance) example shows the difference.

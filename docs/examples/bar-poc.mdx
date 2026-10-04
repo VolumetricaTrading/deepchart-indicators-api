@@ -1,0 +1,64 @@
+---
+title: "Bar POC"
+description: "Reading the volume traded at each price of a bar."
+---
+
+**Source:** `src/Data/BarPoc.cs` · **Calculated on:** desktop or server
+
+A marker on every bar at the price which traded the most volume, its point of control.
+
+## What it shows
+
+- Asking for the volume by price.
+- Walking the prices of a bar.
+- Integer ticks (`PinT`) and their conversion to prices.
+- A series drawn as markers.
+
+## Asking for the data
+
+```csharp
+public override void OnSet(bool setDefault, bool themeOverride)
+{
+    NeedVbp = true;
+    // ...
+}
+```
+
+The volume by price is built only for the indicators which ask for it, because it costs memory and time on every chart load.
+
+## Walking the profile of a bar
+
+```csharp
+foreach (int pinT in bar.PriceList)
+{
+    if (!bar.VbpListAll.TryGetValue(pinT, out var levels) || levels == null)
+        continue;
+    if (levels[0].TotVol > pocVolume)
+    {
+        pocVolume = levels[0].TotVol;
+        pocPinT = pinT;
+    }
+}
+point.Y[0] = VAn.FromPinT(pocPinT).Price;
+```
+
+`levels[0]` is the volume of every trade at that price, with `TotVol`, `AskVol`, `BidVol` and the number of trades.
+
+## Markers
+
+```csharp
+CurrentStyle = SeriesType.Square;
+AvailableStyle = (int)(SeriesType.Square | SeriesType.Diamond | SeriesType.Cross | SeriesType.Cicle);
+```
+
+The user can choose among the styles listed in `AvailableStyle`.
+
+## Things to notice
+
+- The example checks `PriceList` and `VbpListAll` for `null` and hides the point: not every symbol has volume by price.
+- The open bar is recalculated in `OnEnd`, so the marker moves while the bar trades.
+
+## Try
+
+- Show the POC only when it is in the upper or lower third of the bar.
+- Add the value area of the bar as a `Range` series.

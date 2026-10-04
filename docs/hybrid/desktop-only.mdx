@@ -1,0 +1,51 @@
+---
+title: "Desktop only features"
+description: "What makes an indicator a desktop one."
+---
+
+Some members of the API work only on the desktop chart. They are marked with the `[DesktopOnly]` attribute. An indicator can use them: it compiles and runs on your chart as usual.
+
+The consequence is for the whole package: **when any indicator of a package uses a desktop only member, the package is calculated on the desktop**, never on the server. Calling it, reading it, overriding it or implementing it all count as using it.
+
+## Chart API (`VAn`)
+
+| Member | Why | Use instead |
+|---|---|---|
+| `RebuildDom()` | the order book exists only on the desktop | |
+| `SetCalculateAggrTrades()` | aggregated trades are built only on the desktop | |
+| `SetNeedPullbackBar()`, `PullbackBar`, `PullbackSourceInfo` | the pullback bar is built only on the desktop | |
+| `GetBarVars()`, `GetVolumeVbp()`, `GetMinuteVbp()` | secondary bars of the chart | `BarVars` |
+| `GetParamsById()`, `GetSeriesValueById()` | the other indicators of a chart are known only by that chart | |
+| `RequestResolution(string Symbol, ...)` | data of another symbol | `RequestResolution(ParamType, Param1, Param2)` for the same symbol |
+| `GetColorForTheme()` | returns the resolved color | `GetColorRefForTheme()` |
+
+## Indicator
+
+| Member | Why |
+|---|---|
+| `OnBook`, `OnBookCall` | order book updates |
+| `OnResizeAxis`, `OnResizeCall` | the axes are resized by the chart of each user |
+| `OnFundInfoCall` | fundamental data |
+| `TradingApi` and every member of `ITradingAPI` | orders and positions belong to the user |
+
+## Drawing
+
+| Member | Why |
+|---|---|
+| `IChartSeries.IncludeInResize`, `UseAxesWithSpace`, `IniPlotIndex` | options of the series of the desktop chart |
+| `IAnnotation.TextWidth`, `TextHeight` | a text is measured only where it is drawn |
+| `IAxis.Minimum`, `Maximum` | calculated by the chart while it draws |
+
+## Trades of the history
+
+One case is a value and not a member:
+
+```csharp
+OnTickCall = CallHandler.HistRT;
+```
+
+The server calculates the history from the bars and does not replay the trades. An indicator which asks for the trades of the history is treated as a desktop one. Use `CallHandler.RT` and take the history from the totals of the bars (`VolTotList`, volume by price).
+
+## Mixing indicators
+
+The rule applies to the package, not to the single indicator. Keep the desktop only indicators in a separate dll when you want the others to be calculated on the server.

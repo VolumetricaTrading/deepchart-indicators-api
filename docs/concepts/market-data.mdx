@@ -1,0 +1,100 @@
+---
+title: "Market data"
+description: "Bars, volume by price and trades."
+---
+
+An indicator reads its data from `VAn`, the chart API.
+
+## Bars
+
+```csharp
+List<BarClass> bars = VAn.BarVars;
+int index = VAn.BarIndex;        // the bar being calculated
+BarClass bar = bars[index];
+```
+
+| Member of `BarClass` | Meaning |
+|---|---|
+| `Open`, `High`, `Low`, `Close` | prices |
+| `OpenInT`, `HighInT`, `LowInT`, `CloseInT` | the same prices as integer ticks |
+| `exchDt` | time of the bar, in the time of the exchange. Use it for calculations |
+| `dt` | time of the bar in the local time of the user: for display only |
+| `IsNewDay` | the first bar of a session |
+| `SessionIndex` | number of the session the bar belongs to |
+| `VolTotList[0]` | volume totals of the bar |
+
+The totals in `VolTotList[0]` (`InfoVolClass`):
+
+| Member | Meaning |
+|---|---|
+| `TotVol`, `AskVol`, `BidVol` | total volume, volume traded at the ask and at the bid |
+| `TotNTVol`, `AskNTVol`, `BidNTVol` | number of trades |
+| `MaxDeltaVol`, `MinDeltaVol` | highest and lowest delta reached during the bar |
+| `VwapPrice` | volume weighted average price of the bar |
+
+Never read bars after `VAn.BarIndex` during the history: they are not there yet.
+
+## Prices as integer ticks
+
+Volume data is indexed by the price as an integer number of ticks, called `PinT`. Convert with:
+
+```csharp
+double price = VAn.FromPinT(pinT).Price;
+int ticks = VAn.GetDoubleTicksDiff(lowPrice, highPrice);
+double higher = VAn.DoubleAddSubTicks(price, 4);
+```
+
+## Volume by price
+
+The volume traded at each price of a bar is built only for the indicators which ask for it, in `OnSet`:
+
+```csharp
+NeedVbp = true;
+```
+
+Then, for each bar:
+
+```csharp
+foreach (int pinT in bar.PriceList)                     // the prices traded in the bar
+    if (bar.VbpListAll.TryGetValue(pinT, out var levels))
+    {
+        int total = levels[0].TotVol;                   // [0]: every trade
+        int ask = levels[0].AskVol, bid = levels[0].BidVol;
+    }
+```
+
+Check `bar.PriceList` and `bar.VbpListAll` for `null`: some symbols and data feeds have no volume by price.
+
+## Trades
+
+With `OnTickCall` set, `OnTick` receives every trade of the bar still open:
+
+```csharp
+public override void OnTick(Feed.TickByTick tick, bool isRt, AggrInfo aggrInfo)
+{
+    if (tick.AggrSide == Feed.AggressorSideEnum.Ask) delta += tick.Vol;
+    else if (tick.AggrSide == Feed.AggressorSideEnum.Bid) delta -= tick.Vol;
+}
+```
+
+where `Feed` is an alias: `using Feed = VolumetricaAPI.Connection.Structure;`.
+
+| Member of `TickByTick` | Meaning |
+|---|---|
+| `price`, `PinT` | price of the trade |
+| `Vol` | size |
+| `AggrSide` | `Ask`, `Bid` or `Between` |
+| `bid`, `ask` | best bid and ask at the time of the trade |
+| `exDt` | time of the trade, exchange time |
+
+Ask for the trades in realtime only (`CallHandler.RT`) and take the history from the totals of the bars. The trades of the history are available only on the desktop, see [Desktop only features](/hybrid/desktop-only).
+
+## The chart
+
+| Member of `VAn` | Meaning |
+|---|---|
+| `SymbolName`, `SymbolDescription` | the symbol |
+| `ParamType`, `Param1` | type and size of the bars (`Minute` and `5` for a 5 minutes chart) |
+| `IniTimeSession`, `EndTimeSession` | start and end of the session |
+| `IsHighest(index, period)`, `IsLowest(index, period)` | whether a bar is the highest or lowest of the last bars |
+| `GetSecondsToClose()` | seconds left before a time bar closes |

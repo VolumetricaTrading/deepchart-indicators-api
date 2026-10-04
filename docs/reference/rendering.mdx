@@ -1,0 +1,111 @@
+---
+title: "Drawing interfaces"
+description: "Series, points, annotations, groups and axes."
+---
+
+What an indicator draws on, in `VolumetricaCore.dll`, namespace `VolumetricaAPI.Chart`. Members marked **desktop** are `[DesktopOnly]`.
+
+## IChartSeries
+
+A series as the indicator sees it: its points. Style and colors are settings of the user, see [Series](/concepts/series).
+
+| Member | Meaning |
+|---|---|
+| `Name` | name of the series |
+| `Points` | the points, one per bar |
+| `NumOfYPerPoints` | values of each point: 1, 2 for a range, 4 for candles |
+| `seriesType` | current style |
+| `IncludeInResize`, `UseAxesWithSpace`, `IniPlotIndex` | **desktop** |
+
+## IChartPoint
+
+| Member | Meaning |
+|---|---|
+| `Y` | values of the point |
+| `IsHidden` | not drawn |
+| `BreakPoint` | interrupts the line |
+| `LineColor`, `BackColor` | colors of this point |
+| `Text`, `FontSize`, `ShowLabel`, `LabelSpan` | label of the point |
+| `alignMarker` | where a marker is placed relative to the value |
+| `PointWidth`, `ShowOnlyBorder` | look of a bar |
+| `YMagnet` | with a marker aligned above or below (`alignMarker`): the marker is attached to the value |
+| `X` | time of the bar of the point |
+
+## IAnnotation
+
+**Position**
+
+| Member | Meaning |
+|---|---|
+| `AnnotationType` | the shape |
+| `X`, `Y`, `X2`, `Y2`, `X3`, `Y3` | coordinates. With absolute coordinates the bar `i` is at `X = i + 1` |
+| `CoordinateXType`, `CoordinateYType` | `Absolute`, `Relative`, `Pixel`, `Session` |
+| `Width`, `Height` | size, for the shapes which have one |
+| `XOffset` | shift on X |
+| `Area` | chart area: `ChartAreaRef.Main` or the `ChartArea` of the indicator |
+| `Visible` | drawn or not |
+| `PlotForeground` | drawn over the bars |
+| `IsExtended` | a line continues to the edge of the chart |
+| `MaxBarsViewed` | not drawn when more than this number of bars are visible |
+
+**Look**
+
+| Member | Meaning |
+|---|---|
+| `LineColor`, `LineWidth`, `LineDashStyle` | border or line |
+| `BackColor`, `BackGradient` | fill |
+| `LineColor2`, `LineWidth2`, `LineDashStyle2`, `BackColor2`, `BackGradient2` | second line and fill, for the shapes which have two |
+| `Margin`, `PixelMargin`, `MinPxForMargin` | space outside the shape, in pixels |
+| `Padding`, `PixelPadding` | space inside the shape, in pixels |
+
+**Text**
+
+| Member | Meaning |
+|---|---|
+| `Text`, `ForeColor`, `FontSize`, `FontBold` | the text |
+| `TextAlign`, `LabelAlign` | alignment |
+| `Tooltip` | text shown when the mouse is over the annotation |
+| `ShowLabel`, `ShowLblBackground`, `ShowPrice` | label and price of a level |
+| `TextOnAxis`, `TextOnlyInside`, `needToShowAllText`, `CheckStringWidthInside` | where the text may be drawn |
+| `TextWidth`, `TextHeight` | measured size of the text. **desktop** |
+
+**Levels and children**
+
+| Member | Meaning |
+|---|---|
+| `AddAnnParam(coeff, color, lineWidth, style)`, `ClearAnnParam()` | levels of a retracement or projection |
+| `Ann1ToPlot`, `Ann2ToPlot`, `AnnParamToPlot`, `ShowPercent`, `ShowDifference` | what a multi part annotation shows |
+| `AddToList(annotation)`, `InsertToList(index, annotation)`, `ClearList()` | child annotations, for a text of several lines |
+
+## IAnnGroup
+
+| Member | Meaning |
+|---|---|
+| `AnnItems`, `AnnGroupList` | the annotations, or the groups, it holds |
+| `AddGroup(group)` | adds a group inside this one |
+| `RemoveAnnotation(annotation)` | removes an annotation |
+| `Clear()` | removes everything |
+| `Visible` | drawn or not |
+| `Area` | chart area the group is bound to |
+| `PlotForeground` | drawn over the bars |
+| `MaxBarsViewed`, `MaxCountShown` | limits for drawing |
+| `AnnPerBar`, `shiftIndex`, `OutBars` | for groups with a fixed number of annotations per bar: lets the chart find the visible ones without scanning the group |
+
+## IAxis
+
+Only what an indicator sets is applied. See [Axes and placement](/concepts/axes-and-placement).
+
+| Member | Meaning |
+|---|---|
+| `YSame` | symmetric around zero |
+| `YAdjust`, `YAuto` | the axis follows the visible values |
+| `DecimalPlaceShown`, `FormatAutoNumber`, `CustomFormat` | format of the labels |
+| `MinimumLimitMode`, `MinimumLimitValue`, `MaximumLimitMode`, `MaximumLimitValue` | limits |
+| `ViewMinimum`, `ViewMaximum` | range shown |
+| `TopMarginPerc`, `BottomMarginPerc`, `SetAxisMargin(...)` | margins |
+| `ShowGrid`, `GridStyle`, `GridColor`, `ShowText`, `TextColor` | look |
+| `UseFixedDelta`, `FixedDeltaValue` | fixed step between the labels |
+| `UseNegativeValue`, `UseOnlyIntValues` | kind of values |
+| `Description` | text of the axis |
+| `ShowVisbility(visible)` | shows or hides the axis |
+| `Minimum`, `Maximum` | range calculated by the chart. **desktop** |

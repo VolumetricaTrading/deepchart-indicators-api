@@ -1,0 +1,44 @@
+---
+title: "Book Imbalance"
+description: "An indicator which is desktop only, and why."
+---
+
+**Source:** `src/DesktopOnly/BookImbalance.cs` · **Calculated on:** desktop only
+
+A label with the share of the visible order book which is on the bid side.
+
+## What it shows
+
+- The order book: `RebuildDom` and `OnBook`.
+- What `[DesktopOnly]` means in practice.
+
+## The order book
+
+The first time, the indicator asks for the whole book. After that it receives the changes:
+
+```csharp
+public override void OnEnd(bool isRt)
+{
+    if (!bookLoaded)
+    {
+        bookLoaded = true;
+        Apply(VAn.RebuildDom());
+    }
+    Draw();
+}
+
+public override void OnBook(Feed.BookUpdate updates)
+{
+    Apply(updates);
+}
+```
+
+Each update has a price (`PinT`), a side (`isAsk`) and the new quantity at that price. A quantity of zero removes the level.
+
+## Why it is desktop only
+
+`RebuildDom`, `OnBook` and `OnBookCall` are marked `[DesktopOnly]` in the API: the order book of a user exists only on the desktop. Using them changes nothing on your chart. It changes where a package can be calculated: a package which contains this indicator is calculated on the desktop of each user, never on the server.
+
+That is why this example is in its own folder. To publish the other examples as a server package, leave this one out of the dll.
+
+See [Desktop only features](/hybrid/desktop-only) for the full list.

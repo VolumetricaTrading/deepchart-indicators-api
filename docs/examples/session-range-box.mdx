@@ -1,0 +1,65 @@
+---
+title: "Session Range Box"
+description: "Annotations placed on the bars, in groups, updated in realtime."
+---
+
+**Source:** `src/Annotations/SessionRangeBox.cs` · **Calculated on:** desktop or server
+
+A box around the high and the low of every session, with its size in ticks written on it.
+
+## What it shows
+
+- Creating annotations and adding them to a group.
+- Absolute coordinates: bars on X, prices on Y.
+- Two groups, one per kind of annotation.
+- Updating the annotation of the session in progress, removing the old ones.
+
+## Groups
+
+A group holds annotations or other groups, not both. The boxes and the labels get a group each, inside the group of the indicator:
+
+```csharp
+public override void OnLoad()
+{
+    sessions.Clear();
+    boxes = VAn.CreateAnnGroup();
+    labels = VAn.CreateAnnGroup();
+    IndVars.Ann_List.AddGroup(boxes);
+    IndVars.Ann_List.AddGroup(labels);
+}
+```
+
+## Placing a box on the bars
+
+```csharp
+// The bar of index i is at i + 1, and it is one unit wide
+session.Box.X = session.FirstIndex + 0.5;
+session.Box.X2 = lastIndex + 1.5;
+session.Box.Y = session.High;
+session.Box.Y2 = session.Low;
+```
+
+The same method is called when the session starts and every time it grows: setting an annotation again is how it is updated.
+
+## Limiting what is drawn
+
+```csharp
+if (sessions.Count > MaxSessions)
+{
+    var oldest = sessions[0];
+    boxes.RemoveAnnotation(oldest.Box);
+    // ...
+}
+```
+
+Without a limit, a chart with years of history would hold thousands of annotations nobody looks at.
+
+## Things to notice
+
+- A new session is detected with `bar.IsNewDay`, which follows the session times of the chart.
+- The indicator keeps its own list of sessions and clears it in `OnLoad`: the chart empties the groups before every calculation, but not your fields.
+
+## Try
+
+- Draw the middle of the range as a `Line` limited to the session.
+- Color the box by whether the session closed above or below its open.

@@ -1,0 +1,64 @@
+---
+title: "Axes and placement"
+description: "Where an indicator is drawn and how its Y axis behaves."
+---
+
+## Placement
+
+The user decides where an indicator goes: over the price, or in an area of its own below the chart. The indicator does not choose, but it should say in its description when its values are not prices (a volume, an oscillator), so the user places it in its own area.
+
+The series are always drawn in the area of the indicator. Annotations go to the price area unless you set their `Area`:
+
+```csharp
+annotation.Area = ChartArea;          // the area of the indicator
+annotation.Area = ChartAreaRef.Main;  // the price area
+```
+
+## The Y axis
+
+`AxisY` is the Y axis of the area of the indicator. Set its options in `OnInit`:
+
+```csharp
+public override void OnInit()
+{
+    AxisY.YSame = true;             // the same distance above and below zero
+    AxisY.DecimalPlaceShown = 0;    // whole numbers
+    AxisY.FormatAutoNumber = true;  // 1.5K, 2M
+}
+```
+
+| Option | Meaning |
+|---|---|
+| `YSame` | the axis is symmetric around zero |
+| `DecimalPlaceShown` | decimals of the labels |
+| `FormatAutoNumber` | large numbers are abbreviated |
+| `MinimumLimitMode`, `MinimumLimitValue` | a lower limit for the axis |
+| `MaximumLimitMode`, `MaximumLimitValue` | an upper limit |
+| `TopMarginPerc`, `BottomMarginPerc` | empty space above and below the values |
+| `ShowGrid`, `GridColor`, `TextColor` | look of the axis |
+
+`SetYAxisConstraints` sets margins and limits in one call:
+
+```csharp
+SetYAxisConstraints(minimumLimitMode: AxisLimitModeEnum.Fixed, minimumLimitValue: 0);
+```
+
+Only the options an indicator sets are applied: the rest stays as the user has it.
+
+<Note>
+  `AxisY.Minimum` and `AxisY.Maximum` are calculated by the chart while it draws and are desktop only. `AxisY.ViewMinimum` and `ViewMaximum` are the values an indicator can set.
+</Note>
+
+## Texts on the chart
+
+Two properties let an indicator speak to the user without drawing anything:
+
+| Property | Shown | Set it in |
+|---|---|---|
+| `Description` | next to the name of the indicator | `OnSet` |
+| `StatusMessage` | on the top left of the chart, when the chart has loaded. `null` when there is nothing to say | `OnInit` or `OnLoad` |
+
+```csharp
+Description = $"SMA ({Length})";
+StatusMessage = VAn.ParamType == ChartResolutionInfo.ParamTypeEnum.Minute ? null : "Meant for time based charts";
+```

@@ -1,0 +1,69 @@
+---
+title: "Live Delta"
+description: "Realtime trades, bar totals and the Y axis."
+---
+
+**Source:** `src/Data/LiveDelta.cs` · **Calculated on:** desktop or server
+
+The delta of every bar, ask volume minus bid volume, as a histogram. Add it in an area of its own: its values are volumes.
+
+## What it shows
+
+- `OnTick` in realtime.
+- The totals of a bar, `VolTotList[0]`.
+- History from the bars, realtime from the trades.
+- Options of the Y axis.
+
+## Two sources for the same value
+
+The history comes from the totals of each closed bar:
+
+```csharp
+public override void OnClose(bool isRt)
+{
+    var totals = VAn.BarVars[VAn.BarIndex].VolTotList[0];
+    SetPoint(VAn.BarIndex, totals.AskVol - totals.BidVol);
+}
+```
+
+The bar in progress is built trade by trade:
+
+```csharp
+public override void OnTick(Feed.TickByTick tick, bool isRt, AggrInfo aggrInfo)
+{
+    if (tick.AggrSide == Feed.AggressorSideEnum.Ask)
+        liveDelta += tick.Vol;
+    else if (tick.AggrSide == Feed.AggressorSideEnum.Bid)
+        liveDelta -= tick.Vol;
+    SetPoint(VAn.BarIndex, liveDelta);
+}
+```
+
+with the trades asked for realtime only:
+
+```csharp
+OnTickCall = CallHandler.RT;
+```
+
+This is what keeps the indicator portable: asking for the trades of the history (`HistRT`) would make it a desktop one.
+
+## The Y axis
+
+```csharp
+public override void OnInit()
+{
+    AxisY.YSame = true;             // symmetric around zero
+    AxisY.DecimalPlaceShown = 0;
+    AxisY.FormatAutoNumber = true;  // 1.5K
+}
+```
+
+## Things to notice
+
+- `OnOpen` resets `liveDelta`: the counter belongs to the bar in progress.
+- With `MinimumSize` above 1 the closed bar keeps the value built from the trades, because the totals of a bar have no size filter. On the history that filter cannot be applied: closed bars of the history always show the full delta.
+
+## Try
+
+- Add the cumulative delta of the session as a second series.
+- Color the bars by whether the delta agrees with the direction of the price.

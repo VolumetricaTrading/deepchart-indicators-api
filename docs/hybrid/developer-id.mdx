@@ -1,0 +1,52 @@
+---
+title: "Developer id"
+description: "Why a local dll needs your id, and where to set it."
+---
+
+Deepchart loads a dll from the local indicators folder only when the dll was built for the user who is logged in. The dll says who it was built for with a piece of metadata: your **developer id**.
+
+A dll without the id, or with the id of another user, is skipped. The reason is written in the log of the app:
+
+```
+Indicators of MyIndicators.dll not loaded: DeepchartDevId missing is not the one of the user
+```
+
+## Where to find your id
+
+{/* TODO: say where the user reads the developer id (not defined yet). */}
+
+<Warning>
+  This page does not yet say where the developer id is shown. Until it does, ask Deepchart support for yours.
+</Warning>
+
+## Where to set it
+
+In `src/DeepchartIndicators.csproj`:
+
+```xml
+<DeepchartDevId Condition="'$(DeepchartDevId)' == ''">YOUR-DEV-ID</DeepchartDevId>
+```
+
+or on the command line, which keeps the id out of the repository:
+
+```bash
+dotnet build src/DeepchartIndicators.csproj -p:DeepchartDevId=your-id
+```
+
+The project writes it in the dll as assembly metadata:
+
+```xml
+<AssemblyMetadata Include="DeepchartDevId" Value="$(DeepchartDevId)" />
+```
+
+which is the same as this line in a source file:
+
+```csharp
+[assembly: System.Reflection.AssemblyMetadata("DeepchartDevId", "your-id")]
+```
+
+The build warns when the id is still the placeholder.
+
+## What the id is not
+
+The id identifies you as the author of the dll on your own installation. It is not a license and it does not protect the dll: a dll built with your id is loaded only by your account. To let other users have your indicators, see [Sharing indicators](/hybrid/sharing).

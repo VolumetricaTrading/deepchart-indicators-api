@@ -1,0 +1,54 @@
+---
+title: "Quickstart"
+description: "Build the example indicators and load them on a chart."
+---
+
+## Before you start
+
+- Deepchart installed. The project references two libraries from its folder: `VolSysAPI.dll` and `VolumetricaCore.dll`.
+- The [.NET 10 SDK](https://dotnet.microsoft.com/download).
+- Your developer id (see [Developer id](/hybrid/developer-id)).
+- Any editor: Visual Studio, Rider or Visual Studio Code.
+
+## Build and load
+
+<Steps>
+  <Step title="Get the project">
+    Clone or download this repository. The project is in `src`, the solution is `DeepchartIndicators.sln`.
+  </Step>
+  <Step title="Set your developer id">
+    Open `src/DeepchartIndicators.csproj` and replace `YOUR-DEV-ID`:
+
+    ```xml
+    <DeepchartDevId Condition="'$(DeepchartDevId)' == ''">YOUR-DEV-ID</DeepchartDevId>
+    ```
+
+    Deepchart loads a local dll only when it carries the id of the logged user.
+  </Step>
+  <Step title="Build">
+    ```bash
+    dotnet build src/DeepchartIndicators.csproj
+    ```
+
+    The dll is written to `Documents\Deepchart\Indicators`, the folder Deepchart loads local indicators from.
+
+    If Deepchart is not installed in `C:\Program Files\Volumetrica Trading\Deepchart\`, pass its folder:
+
+    ```bash
+    dotnet build src/DeepchartIndicators.csproj -p:DeepchartDir="D:\Apps\Deepchart"
+    ```
+  </Step>
+  <Step title="Add an indicator to a chart">
+    Open a chart in Deepchart and open the indicator list. The examples are under **Personal**, with names starting with `Example -`.
+  </Step>
+</Steps>
+
+<Note>
+  Deepchart watches the indicators folder: after a new build, the dll is loaded again without restarting the app.
+</Note>
+
+## Write your first indicator
+
+Copy `src/Basics/SimpleMovingAverage.cs`, rename the class and change the name returned by `Register()`. Each class in the dll with a `Register()` method is one indicator in the list.
+
+Then read [Life cycle](/concepts/lifecycle) to learn when each method is called.

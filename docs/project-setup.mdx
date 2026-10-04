@@ -1,0 +1,67 @@
+---
+title: "Project setup"
+description: "What the project file does, line by line."
+---
+
+`src/DeepchartIndicators.csproj` is a plain class library. You can keep adding indicators to it, or copy it to start a library of your own.
+
+## Target and references
+
+```xml
+<TargetFramework>net10.0</TargetFramework>
+<OutputType>Library</OutputType>
+```
+
+The project targets plain `net10.0`, without Windows or WPF. It references only the indicator API:
+
+```xml
+<Reference Include="VolSysAPI">
+  <HintPath>$(DeepchartLibDir)VolSysAPI.dll</HintPath>
+  <Private>false</Private>
+</Reference>
+<Reference Include="VolumetricaCore">
+  <HintPath>$(DeepchartLibDir)VolumetricaCore.dll</HintPath>
+  <Private>false</Private>
+</Reference>
+```
+
+| Library | What it contains |
+|---|---|
+| `VolSysAPI.dll` | `Indicator`, the chart API (`IMethodAPI`, `IMethodCloudAPI`), bars and volume types |
+| `VolumetricaCore.dll` | the drawing interfaces, `ColorRef`, the series attribute, parameter attributes |
+
+`Private` is `false` because the two libraries are part of Deepchart: they must not be copied next to your dll.
+
+Do not add references to the chart control or to WPF. An indicator which needs them cannot run on the server, and the compiler is what keeps you inside the portable API.
+
+## Properties you can set
+
+| Property | Default | Meaning |
+|---|---|---|
+| `DeepchartDir` | `C:\Program Files\Volumetrica Trading\Deepchart\` | Folder Deepchart is installed in |
+| `DeepchartDevId` | `YOUR-DEV-ID` | Your [developer id](/hybrid/developer-id), written in the dll |
+| `OutputPath` | `Documents\Deepchart\Indicators\` | Where the dll is written |
+
+Each one can be changed in the file or on the command line:
+
+```bash
+dotnet build src/DeepchartIndicators.csproj -p:DeepchartDevId=your-id -p:OutputPath="C:\temp\out\\"
+```
+
+The build stops with a clear error when the two libraries are not in `DeepchartDir`, and warns when the developer id is still the placeholder.
+
+## Developer id in the dll
+
+```xml
+<ItemGroup>
+  <AssemblyMetadata Include="DeepchartDevId" Value="$(DeepchartDevId)" />
+</ItemGroup>
+```
+
+This writes `[assembly: AssemblyMetadata("DeepchartDevId", "...")]` in the dll. Deepchart reads it when it loads a dll from the local folder.
+
+## Your own library
+
+- Change `AssemblyName` and `RootNamespace`. The file name of the dll is part of how a workspace remembers a local indicator, so choose it once.
+- Keep the class name of an indicator stable: it is its identity inside the dll.
+- One dll can hold any number of indicators.

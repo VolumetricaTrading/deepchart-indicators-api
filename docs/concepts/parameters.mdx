@@ -1,0 +1,77 @@
+---
+title: "Parameters"
+description: "The settings of an indicator are its public properties."
+---
+
+Every public property of the indicator with a getter and a setter is a parameter. Deepchart shows it in the settings window, saves it with the workspace and, for an indicator calculated on the server, sends its value with the request.
+
+```csharp
+[Category("General")]
+[VolCustom(CategoryIndex = 0, PropertyIndex = 0, MinValue = 1, MaxValue = 1000, IncrementValue = 1)]
+public int Length { get; set; } = 20;
+```
+
+The initial value of the property is the default of the parameter.
+
+## Supported types
+
+| Type | Shown as |
+|---|---|
+| `bool` | switch |
+| `int`, `long`, `double`, `decimal` | number |
+| `string` | text |
+| an `enum` | list of its values |
+| `ColorRef` | color picker |
+| `DateTime`, `TimeSpan` | date and time |
+| `DynamicList` | list filled at run time (alert sounds, for example) |
+| a class with public properties | a group of parameters |
+
+## Layout
+
+Three attributes control how a parameter appears:
+
+- `[Category("General")]` from `System.ComponentModel` puts it in a section.
+- `[DisplayName("Price source")]` gives it a label. Without it, the name of the property is used.
+- `[VolCustom(...)]` from `VolumetricaControls` sets the order and the limits.
+
+The most used values of `VolCustom`:
+
+| Value | Meaning |
+|---|---|
+| `CategoryIndex` | order of the section |
+| `PropertyIndex` | order inside the section |
+| `MinValue`, `MaxValue`, `IncrementValue` | limits and step of a number |
+| `DecimalPosToShow` | decimals shown for a number |
+| `IsVisible` | `false` hides the parameter |
+| `IsAlert` | on a `DynamicList`: the list of the alert sounds |
+
+## Nested objects
+
+A parameter can be a class with its own properties. The settings window shows it as a group:
+
+```csharp
+public class SqueezeSettings
+{
+    public bool Enabled { get; set; } = true;
+    [DisplayName("Width under (% of price)")]
+    public double WidthPercent { get; set; } = 0.5;
+}
+
+[Category("Colors")]
+public SqueezeSettings Squeeze { get; set; } = new SqueezeSettings();
+```
+
+Always give the property an instance as its initial value.
+
+## Properties that are not parameters
+
+- A property without a public setter is not a parameter. The series definitions use this: `public ChartSeriesDefinition Average { get; private set; }`.
+- Fields are never parameters: keep the state of the calculation in fields.
+
+<Note>
+  The names of the properties are what the workspace saves. Renaming a property loses the value the user saved for it.
+</Note>
+
+## Reading the parameters
+
+Read them wherever you need: they are set before `OnSet`. When the user changes one, the chart calls `OnSet` again and recalculates the indicator, so the calculation never has to watch for changes.

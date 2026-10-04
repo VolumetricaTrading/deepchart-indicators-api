@@ -1,0 +1,62 @@
+---
+title: "Troubleshooting"
+description: "The build fails, or the indicator does not appear."
+---
+
+## The build fails
+
+<AccordionGroup>
+  <Accordion title="VolSysAPI.dll and VolumetricaCore.dll were not found">
+    The project looks for the two libraries in the folder Deepchart is installed in. Pass your folder:
+
+    ```bash
+    dotnet build src/DeepchartIndicators.csproj -p:DeepchartDir="D:\Apps\Deepchart"
+    ```
+
+    or change `DeepchartDir` in the project file. An old version of Deepchart does not have these libraries: update it.
+  </Accordion>
+  <Accordion title="The dll cannot be written">
+    The output folder is `Documents\Deepchart\Indicators`. If the build cannot write there, check that the folder exists and that no other program keeps the file open.
+  </Accordion>
+  <Accordion title="'Structure' is an ambiguous reference">
+    `VolSysAPI.Structure` (bars) and `VolumetricaAPI.Connection.Structure` (trades, order book) have the same name. Use an alias for the second one:
+
+    ```csharp
+    using Feed = VolumetricaAPI.Connection.Structure;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## The indicator is not in the list
+
+<AccordionGroup>
+  <Accordion title="The developer id is missing or wrong">
+    The most common cause. The build warns when the id is still `YOUR-DEV-ID`, and the log of Deepchart says `DeepchartDevId ... is not the one of the user`. See [Developer id](/hybrid/developer-id).
+  </Accordion>
+  <Accordion title="The class has no Register method">
+    An indicator is listed only if it has a `public static` method named `Register` returning `IndicatorDescriptionBase`.
+  </Accordion>
+  <Accordion title="The dll is in another folder">
+    Deepchart loads local indicators from `Documents\Deepchart\Indicators`. Check `OutputPath` if you changed it.
+  </Accordion>
+  <Accordion title="The indicator throws when it is created">
+    The constructor and the property initializers run when the list is built. Keep them simple and do the work in `OnLoad`.
+  </Accordion>
+</AccordionGroup>
+
+## The indicator is on the chart but draws nothing
+
+- **No call was asked for.** `OnOpenCall`, `OnCloseCall`, `OnEndCall` are `Off` by default. Set them in `OnSet`.
+- **The points are hidden.** A point added with `IsHidden: true` stays hidden until you set `IsHidden = false`.
+- **The series is not enabled.** `definition.BaseSeries` is `null` when `Enabled` is `false`.
+- **An annotation was not added.** Creating it is not enough: call `VAn.AddAnnotation(group, annotation)`.
+- **The annotation is in the wrong place.** With absolute coordinates the bar `i` is at `X = i + 1`, and `Y` is a value of the axis of its area. Set `Area = ChartArea` to draw in the area of the indicator.
+- **The state was not reset.** After a parameter change the indicator is calculated again from `OnLoad`. Fields which keep their old values give wrong results from the second calculation on.
+
+## The values are wrong on the last bar
+
+The last bar is still open. `OnClose` is not called for it: update it in `OnEnd`, which is called after the history and after every batch of realtime updates.
+
+## Volume by price is empty
+
+Set `NeedVbp = true` in `OnSet`, and check `PriceList` and `VbpListAll` for `null`: some symbols and data feeds do not have it.

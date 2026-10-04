@@ -1,0 +1,98 @@
+---
+title: "Attributes and types"
+description: "The attributes and the data types an indicator uses."
+---
+
+## ChartSeriesAttribute
+
+Base of the attribute which declares a series. Derive one class per series and set the defaults in its constructor. See [Series](/concepts/series).
+
+| Member | Meaning |
+|---|---|
+| constructor `(name)` | name of the series, unique in the indicator |
+| `Order` | plot order. With the same value, the declaration order |
+| `CurrentStyle`, `AvailableStyle` | default style and the styles the user can choose |
+| `PrimaryColor`, `SecondaryColor`, `ThirdColor`, `FourthColor` | default colors |
+| `LineWidth`, `LineStyle`, `MarkerStyle`, `PointWidth` | default look |
+| `ShortName`, `NameLabel`, `ValueLabel`, `NameShowBG`, `ValueShowBG` | labels on the axis |
+| `IncludeOnAutoCenter` | the series counts when the chart centers the axis |
+| `Enabled` | initial value of `ChartSeriesDefinition.Enabled` |
+| `OverrideAutoColor` | the indicator colors every point itself |
+| `ShowInProp` | `false`: the series is not listed in the settings |
+| `CustomNumOfPoints` | values per point, when the style does not decide it |
+
+## ChartSeriesDefinition
+
+The property which holds a declared series.
+
+| Member | Meaning |
+|---|---|
+| `Name` | name of the series |
+| `BaseSeries` | the series (`IChartSeries`). `null` until it is created and when it is not enabled |
+| `Enabled` | set it in `OnSet` to create the series or not |
+| `PrimaryColor` ... `FourthColor` | references to the colors the user chose |
+
+## VolCustomAttribute
+
+Layout and limits of a parameter, namespace `VolumetricaControls`. See [Parameters](/concepts/parameters).
+
+| Member | Meaning |
+|---|---|
+| `CategoryIndex`, `PropertyIndex` | order of the section and of the parameter |
+| `SubCategory` | a group inside the section |
+| `MinValue`, `MaxValue`, `IncrementValue`, `DecimalPosToShow` | numbers |
+| `IsVisible` | hides the parameter |
+| `IsAlert` | a `DynamicList` of alert sounds |
+| `EnableTransparent` | a color can be transparent |
+| `SerializeIgnore` | the value is not saved |
+
+## ColorRef
+
+A reference to a color. See [Colors](/concepts/colors).
+
+| Member | Meaning |
+|---|---|
+| `ColorRef.FromRgb(r, g, b)`, `ColorRef.FromArgb(a, r, g, b)` | a fixed color |
+| named colors (`ColorRef.Yellow`, ...) | fixed colors |
+| `WithOpacity(alpha)` | the same color with a transparency, 0 to 255 |
+| `Kind` | where the color comes from: `Literal`, `Parameter`, `Series`, `Theme` |
+
+## ChartAreaRef
+
+| Member | Meaning |
+|---|---|
+| `ChartAreaRef.Main` | the price area |
+| `ChartArea` (member of the indicator) | the area the user placed the indicator in |
+
+## CallHandler
+
+| Value | Meaning |
+|---|---|
+| `Off` | never called |
+| `RT` | realtime only |
+| `HistRT` | history and realtime |
+
+## BarClass
+
+One bar. See [Market data](/concepts/market-data).
+
+| Member | Meaning |
+|---|---|
+| `Open`, `High`, `Low`, `Close` | prices |
+| `OpenInT`, `HighInT`, `LowInT`, `CloseInT` | prices as integer ticks |
+| `exchDt`, `dt` | time of the bar: exchange time, local time |
+| `Index` | index of the bar |
+| `IsNewDay`, `SessionIndex` | first bar of a session, number of the session |
+| `VolTotList` | volume totals. `[0]` is every trade |
+| `PriceList`, `VbpListAll` | volume by price, with `NeedVbp` |
+
+## Enums of the drawing
+
+| Enum | Values |
+|---|---|
+| `SeriesType` | `Line`, `ContLine`, `Bars`, `StackedBars`, `Area`, `Range`, `Candlestick`, `OHLC`, `CandleBody`, `Text`, `Hidden`, markers (`Square`, `Cicle`, `Diamond`, `Cross`, `Triangle`, `TriangleUp`, `TriangleDown`, `TriangleLeft`, `TriangleRight`) |
+| `CoordinateTypeEnum` | `Absolute`, `Relative`, `Pixel`, `Session` |
+| `DashStyle` | `Solid`, `Dash`, `Dot`, `DashDot`, `DashDotDot` |
+| `AxisLimitModeEnum` | `None`, `Fixed`, `Adjustment` |
+| `ColorReferenceEnum` | what a theme color means: `Up`, `Down`, `Bid`, `Ask`, `Neutral`, ... |
+| `ColorTypeEnum` | what it is used for: `Stroke`, `Fill`, `Text` |

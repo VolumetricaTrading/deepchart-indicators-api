@@ -1,0 +1,82 @@
+---
+title: "Colors"
+description: "A color is a reference to where it comes from, resolved by the chart."
+---
+
+Colors are of type `ColorRef`. A `ColorRef` does not only hold a color: it holds **where the color comes from**. The chart resolves it when it draws, so a point colored with "the first color of this series" follows the settings of the user, and a theme color follows the light and the dark theme, without recalculating the indicator.
+
+This is also what lets an indicator run on the server, which knows neither the theme nor the settings of each user.
+
+## Sources of a color
+
+<Tabs>
+  <Tab title="Literal">
+    A fixed color.
+
+    ```csharp
+    ColorRef orange = ColorRef.FromRgb(255, 165, 0);
+    ColorRef halfRed = ColorRef.FromArgb(128, 255, 0, 0);
+    ColorRef named = ColorRef.Yellow;
+    ```
+  </Tab>
+  <Tab title="Theme">
+    A color of the theme of the user: the right green, red or neutral for a light or a dark chart.
+
+    ```csharp
+    ColorRef up = IMethodAPI.GetColorRefForTheme(ColorReferenceEnum.Up, ColorTypeEnum.Stroke);
+    ColorRef text = IMethodAPI.GetColorRefForTheme(ColorReferenceEnum.Neutral, ColorTypeEnum.Text);
+    ```
+
+    `ColorReferenceEnum` says what the color means (`Up`, `Down`, `Bid`, `Ask`, `Neutral`), `ColorTypeEnum` what it is used for (`Stroke`, `Fill`, `Text`).
+  </Tab>
+  <Tab title="Series">
+    One of the four colors the user chose for a series.
+
+    ```csharp
+    point.LineColor = rising ? Band.PrimaryColor : Band.SecondaryColor;
+    ```
+  </Tab>
+  <Tab title="Parameter">
+    A color parameter of the indicator. Just use the property:
+
+    ```csharp
+    public ColorRef BoxColor { get; set; } = IMethodAPI.GetColorRefForTheme(ColorReferenceEnum.Neutral, ColorTypeEnum.Stroke);
+    // ...
+    box.LineColor = BoxColor;
+    ```
+  </Tab>
+</Tabs>
+
+## Changing a color
+
+```csharp
+// transparency, 0 (invisible) to 255 (solid)
+box.BackColor = BoxColor.WithOpacity(25);
+
+// a mix of two colors: 0 is the first, 1 is the second
+ColorRef mixed = VAn.GetFadedColor(color, SqueezeColor, 0.7);
+```
+
+Both keep the references: a fade between a series color and a parameter still follows both.
+
+## Defaults for series and parameters
+
+Use theme colors as defaults, so the indicator looks right on every theme the first time it is added:
+
+```csharp
+PrimaryColor = IMethodAPI.GetColorRefForTheme(ColorReferenceEnum.Up, ColorTypeEnum.Stroke);
+```
+
+<Warning>
+  Do not use `IMethodAPI.GetColorForTheme`: it returns the resolved color and exists only on the desktop. `GetColorRefForTheme` returns the reference and works everywhere.
+</Warning>
+
+## Where colors are used
+
+| Object | Properties |
+|---|---|
+| point of a series | `LineColor`, `BackColor` |
+| annotation | `LineColor`, `BackColor`, `ForeColor`, `LineColor2`, `BackColor2` |
+| axis | `GridColor`, `TextColor` |
+
+A point without a color of its own takes the color of its series. Set point colors only when they change from point to point, and set `OverrideAutoColor = true` on the series attribute when you do.

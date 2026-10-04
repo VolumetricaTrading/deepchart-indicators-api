@@ -1,0 +1,73 @@
+---
+title: "Life cycle"
+description: "The methods the chart calls on an indicator, and in which order."
+---
+
+An indicator does not run by itself. The chart calls its methods while it loads the bars and while new data arrives. You override the ones you need.
+
+## Order of the calls
+
+<Steps>
+  <Step title="OnSet">
+    Called before every load of the chart, and again when the user changes a parameter. Here the indicator says which calls it wants, enables or disables its series and sets its description. The parameters already have their values.
+  </Step>
+  <Step title="OnPreInit, OnInit">
+    Called once per load, before the series exist. The axes (`AxisX`, `AxisY`) are available from here: set their options in `OnInit`.
+  </Step>
+  <Step title="OnLoad">
+    Called when the series have been created and before the first bar. Reset here everything a previous calculation left: counters, lists, annotations you keep a reference to.
+  </Step>
+  <Step title="History">
+    For every bar already on the chart, in order: `OnOpen`, then `OnClose` when the bar is complete. The last bar is still open, so it gets `OnOpen` only. When all the bars are done, `OnEnd(false)` is called once.
+  </Step>
+  <Step title="Realtime">
+    For every trade, `OnTick`. When a bar ends, `OnClose` for it and `OnOpen` for the new one. After each batch of updates, `OnEnd(true)`: the place to update what depends on the bar still open.
+  </Step>
+  <Step title="OnDispose">
+    Called when the indicator is removed from the chart.
+  </Step>
+</Steps>
+
+Inside these methods `VAn.BarIndex` is the index of the bar being calculated, and `VAn.BarVars` holds the bars up to it.
+
+## Choosing the calls
+
+A call is made only when the indicator asks for it in `OnSet`, with one property per method:
+
+```csharp
+public override void OnSet(bool setDefault, bool themeOverride)
+{
+    OnOpenCall = CallHandler.HistRT;   // history and realtime
+    OnCloseCall = CallHandler.HistRT;
+    OnTickCall = CallHandler.RT;       // realtime only
+    OnEndCall = CallHandler.HistRT;
+}
+```
+
+| Value | Meaning |
+|---|---|
+| `Off` | never called (the default) |
+| `RT` | called only in realtime |
+| `HistRT` | called for the history and in realtime |
+
+Ask only for what you use: an indicator which asks for `OnTick` on the history makes every chart load slower.
+
+<Warning>
+  `OnTickCall = CallHandler.HistRT` (the trades of the history) is available only on the desktop chart. An indicator which uses it is not calculated on the server. Prefer the totals of the bars for the history, as the [Live Delta](/examples/live-delta) example does.
+</Warning>
+
+## Which method for what
+
+| You want to | Use |
+|---|---|
+| add a point for a new bar | `OnOpen` |
+| write the final value of a bar | `OnClose` |
+| update the bar still open | `OnEnd` |
+| react to every trade | `OnTick` |
+| reset the state | `OnLoad` |
+
+A common pattern, used by several examples, needs only two calls: in `OnOpen` add the point of the new bar and finish the previous one, in `OnEnd` update the last one.
+
+## Recalculation
+
+When the user changes a parameter, the chart calls `OnSet` and calculates the indicator again from `OnLoad`. Nothing you kept in fields is cleared for you: `OnLoad` must bring the indicator back to its initial state.

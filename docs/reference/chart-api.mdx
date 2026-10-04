@@ -1,0 +1,85 @@
+---
+title: "Chart API"
+description: "VAn: data of the chart and creation of what the indicator draws."
+---
+
+`VAn` is the object an indicator uses to read the chart and to create points and annotations. Its type is `IMethodCloudAPI`, which extends `IMethodAPI`. Members marked **desktop** are `[DesktopOnly]`.
+
+## Drawing
+
+| Member | Meaning |
+|---|---|
+| `AddPointToSeries(series, indexBar, yValue = 0, isHidden = false, isBreak = false)` | adds a point to a series for a bar and returns it |
+| `CreateAnnotation(annotationType)` | a new annotation, drawn once it is added to a group |
+| `CreateAnnGroup()` | a new group of annotations |
+| `AddAnnotation(group, annotation)` | adds an annotation to a group and to the chart |
+| `GetFadedColor(baseColor, fadeColor, percent)` | a mix of two colors |
+| `IMethodAPI.GetColorRefForTheme(reference, type, range = null)` | a color of the theme (static) |
+| `IMethodAPI.GetColorForTheme(...)` | the resolved theme color. **desktop** |
+
+## Bars
+
+| Member | Meaning |
+|---|---|
+| `BarVars` | the bars of the chart |
+| `BarIndex` | index of the bar being calculated |
+| `LastIndex()` | index of the last bar |
+| `IsHighest(index, lookPeriod, includeEquals = true)` | the bar has the highest high of the last bars |
+| `IsLowest(index, lookPeriod, includeEquals = true)` | the bar has the lowest low of the last bars |
+| `FindIndexByDT(dt, bars)` | index of the bar which contains a local time |
+| `GetCorrectIndexByXAxis(x)` | bar index from a position on the X axis |
+| `GetSecondsToClose()` | seconds left before a time bar closes |
+| `BuildTicksBar(bar, filter = null)` | the trades of a bar rebuilt from its volume by price |
+| `GetBarVars()`, `GetVolumeVbp()`, `GetMinuteVbp(interval)` | secondary bars. **desktop** |
+| `PullbackBar`, `PullbackSourceInfo`, `SetNeedPullbackBar()` | **desktop** |
+
+## Symbol and chart
+
+| Member | Meaning |
+|---|---|
+| `SymbolName`, `SymbolFullName`, `SymbolDescription` | the symbol |
+| `ChartName` | name of the chart, useful as title of a message |
+| `ParamType`, `Param1`, `Param2` | type and size of the bars |
+| `IniTimeSession`, `EndTimeSession` | start and end of the session |
+| `GetIniSessionDt(exchangeTime)`, `GetEndSessionDt(exchangeTime)` | start and end of the session of a time |
+| `LastExDt` | exchange time of the last update |
+| `VolMultiplier` | factor between the integer volumes and the real volume (cryptocurrencies) |
+| `IsReplayData` | the chart is a replay |
+| `PointWidth` | width of a bar on the X axis |
+
+## Prices
+
+| Member | Meaning |
+|---|---|
+| `FromPinT(pinT)` | price from integer ticks (`.Price`) |
+| `FromPrice(price)` | integer ticks from a price |
+| `GetDoubleTicksDiff(from, to)`, `GetIntTicksDiff(from, to)` | ticks between two prices |
+| `DoubleAddSubTicks(price, ticks)`, `IntAddSubTicks(pinT, ticks)` | a price moved by some ticks |
+| `FormatVolume(value, autoFormat = true, format = null)` | a volume as text (1.5K) |
+| `CalculatePnl(open, close, volume = 1, isLong = true)` | profit of a trade in the currency of the symbol |
+
+## Calculation
+
+| Member | Meaning |
+|---|---|
+| `ChartPhase` | whether the chart is calculating the history or is in realtime |
+| `IsFullRecalculation`, `IsPartialRecalculation`, `IniIndexRecalculation` | kind of the calculation in progress |
+| `SetFullRecalculation()` | asks for a full recalculation |
+| `SetCalculateAggrTrades()` | asks for the aggregated trades. **desktop** |
+
+## Other data
+
+| Member | Meaning |
+|---|---|
+| `RequestResolution(paramType, param1, param2, daysToLoad = null, basedOnMinute = null)` | another bar size of the symbol of the chart. On the server only the bar size of the chart itself is available for now |
+| `RequestResolution(symbol, ...)` | data of another symbol. **desktop** |
+| `RebuildDom()` | the order book as it is now. **desktop** |
+| `GetParamsById(index)`, `GetSeriesValueById(indicator, series, index)` | other indicators of the chart. **desktop** |
+
+## Messages
+
+| Member | Meaning |
+|---|---|
+| `ShowMessage(text, title)` | a message for the user. Realtime only |
+| `PlayAlert(alertName)` | plays an alert sound. Realtime only |
+| `AddToLog(message, level, source = null, showToast = null)` | writes to the log of the app |

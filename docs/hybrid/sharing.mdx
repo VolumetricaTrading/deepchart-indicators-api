@@ -1,0 +1,37 @@
+---
+title: "Sharing indicators"
+description: "Local indicators, shared packages and packages calculated on the server."
+---
+
+The same indicator can reach a chart in three ways.
+
+| | Local | Shared package | Server package |
+|---|---|---|---|
+| Who can use it | you | the users it is shared with | the users it is shared with |
+| Where it is calculated | your chart | the chart of each user | the server |
+| The dll is on the user's computer | yes, in the indicators folder | yes, managed by Deepchart | no |
+| Shown in the indicator list under | Personal | Shared | Shared |
+
+## Local
+
+What the [Quickstart](/quickstart) builds: a dll in `Documents\Deepchart\Indicators`, loaded only for your account. This is how you develop and test.
+
+## Shared package
+
+A package is a set of indicators published for other users. Deepchart downloads the package of each user and keeps it for them: there is nothing to copy by hand, and a new version replaces the old one.
+
+Each chart calculates the indicators itself, so everything an indicator can do locally works here too, [desktop only features](/hybrid/desktop-only) included.
+
+## Server package
+
+A package whose indicators use only the portable API can be calculated on the server. The chart of the user subscribes to the indicator with its symbol, its bars and the parameters the user chose, and receives what the indicator draws.
+
+- The code of the indicator never leaves the server.
+- Charts with the same symbol, bars and parameters share one calculation.
+- The user still chooses parameters, colors and styles: they are applied by each chart.
+
+Whether a package is calculated on the server is decided when it is published, from its code: a package which uses a desktop only member, or the trades of the history, is a desktop package.
+
+<Note>
+  Publishing packages is not open to every developer yet. This page explains how the pieces fit, so you can write indicators which are ready for it.
+</Note>

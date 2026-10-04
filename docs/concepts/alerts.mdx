@@ -1,0 +1,60 @@
+---
+title: "Alerts"
+description: "Messages and sounds when something happens in realtime."
+---
+
+An indicator can warn the user with a message or a sound:
+
+```csharp
+VAn.ShowMessage($"Price crossed the average ({Length})", VAn.ChartName);
+VAn.PlayAlert(AlertName.SelValue);
+```
+
+## Rules
+
+- Call them **only in realtime**. Every calculation method receives `isRt`: during the history it is `false`, and an alert there would fire once for every past signal.
+- Fire once per event. A condition which stays true is evaluated again at every update: remember that you already alerted for this bar.
+
+```csharp
+bool alerted;
+
+public override void OnOpen(bool isRt)
+{
+    alerted = false;
+}
+
+public override void OnEnd(bool isRt)
+{
+    if (isRt && !alerted && Crossed())
+    {
+        alerted = true;
+        if (EnableAlertMessage)
+            VAn.ShowMessage("Crossed", VAn.ChartName);
+    }
+}
+```
+
+## Letting the user choose the sound
+
+A parameter of type `DynamicList` marked as alert shows the list of the sounds configured in Deepchart:
+
+```csharp
+[Category("Alert")]
+[DisplayName("Alert name")]
+[VolCustom(IsAlert = true)]
+public DynamicList AlertName { get; set; } = new DynamicList();
+```
+
+`AlertName.SelValue` is the sound the user selected.
+
+<Note>
+  Messages and sounds are produced by the desktop app. When an indicator is calculated on the server, these two calls do nothing for now.
+</Note>
+
+## Logging
+
+For diagnostics rather than alerts, write to the log of the app:
+
+```csharp
+VAn.AddToLog("Session started", VolumetricaAPI.LogLevelEnum.Information);
+```

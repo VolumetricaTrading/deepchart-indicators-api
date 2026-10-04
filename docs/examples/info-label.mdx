@@ -1,0 +1,50 @@
+---
+title: "Info Label"
+description: "A label which stays in place, with relative coordinates."
+---
+
+**Source:** `src/Annotations/InfoLabel.cs` · **Calculated on:** desktop or server
+
+A text with the change of the current session, at a fixed position of the chart area.
+
+## What it shows
+
+- Relative coordinates.
+- The foreground group, `IndVars.FrontAnnList`.
+- `Description` and `StatusMessage`.
+- A color chosen at run time from the theme.
+
+## A label which does not scroll
+
+```csharp
+label = VAn.CreateAnnotation(AnnotationType.Text);
+label.CoordinateXType = CoordinateTypeEnum.Relative;
+label.CoordinateYType = CoordinateTypeEnum.Relative;
+label.X = HorizontalPosition;   // 0 to 1
+label.Y = VerticalPosition;     // 0 to 1
+VAn.AddAnnotation(IndVars.FrontAnnList, label);
+```
+
+The annotation is created once in `OnLoad`. After that only its text and its color change:
+
+```csharp
+label.Text = $"{VAn.SymbolName}  {change:+0.00;-0.00}%";
+label.ForeColor = IMethodAPI.GetColorRefForTheme(change >= 0 ? ColorReferenceEnum.Up : ColorReferenceEnum.Down, ColorTypeEnum.Text);
+```
+
+## Talking to the user
+
+```csharp
+// OnSet: next to the name of the indicator
+Description = "Session change";
+
+// OnLoad: on the chart when it has loaded, null when there is nothing to say
+StatusMessage = VAn.ParamType == ChartResolutionInfo.ParamTypeEnum.Minute ? null : "Info Label: the session change is meant for time based charts";
+```
+
+Use `StatusMessage` when the indicator cannot work as expected on the current chart. It is better than drawing nothing without a reason.
+
+## Try
+
+- Add the range of the session on a second line.
+- Add a parameter for the color of the background.

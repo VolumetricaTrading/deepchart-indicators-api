@@ -1,0 +1,96 @@
+---
+title: "Series"
+description: "Lines, bars and markers with one value per bar."
+---
+
+A series draws one point per bar: a line, a histogram, a band, a marker. Use a series when the indicator has a value for every bar. For anything else (boxes, labels, levels) use [annotations](/concepts/annotations).
+
+## Declaring a series
+
+A series is declared in two parts: an attribute class with its defaults, and a property which holds it.
+
+```csharp
+class AverageSeriesAttribute : ChartSeriesAttribute
+{
+    public AverageSeriesAttribute() : base("Average")
+    {
+        CurrentStyle = SeriesType.Line;
+        AvailableStyle = (int)SeriesType.Line;
+        LineWidth = 2;
+        PrimaryColor = ColorRef.FromRgb(255, 165, 0);
+    }
+}
+
+[AverageSeries]
+public ChartSeriesDefinition Average { get; private set; }
+```
+
+The name passed to the base constructor identifies the series: it must be unique in the indicator, and it is what the workspace saves the settings under.
+
+The property is filled when the indicator is created. Series are plotted in the order they are declared, so the last one is drawn over the others.
+
+## Defaults and user settings
+
+What you set in the attribute are **defaults**. The user can change the style, the width and the colors of every series in the settings of the indicator, and those choices are saved.
+
+| Attribute value | Meaning |
+|---|---|
+| `CurrentStyle` | default style |
+| `AvailableStyle` | styles the user can choose, combined with `\|`. `0` means only `CurrentStyle` |
+| `LineWidth`, `LineStyle` | default line |
+| `PrimaryColor` ... `FourthColor` | default colors |
+| `ShortName` | label on the axis |
+| `Enabled` | `false`: the series is not created |
+| `OverrideAutoColor` | `true`: the indicator sets the color of every point itself |
+
+Common styles: `Line`, `Bars`, `Area`, `Range` (two values per point), `Candlestick` (four values), and the markers `Square`, `Cicle`, `Diamond`, `Cross`, `TriangleUp`, `TriangleDown`.
+
+To read what the user chose, use `GetSeries(definition)`:
+
+```csharp
+if (GetSeries(Average).CurrentStyle == SeriesType.Line) { ... }
+```
+
+## Adding points
+
+Add one point for every bar, in `OnOpen`:
+
+```csharp
+public override void OnOpen(bool isRt)
+{
+    VAn.AddPointToSeries(Average.BaseSeries, VAn.BarIndex, IsHidden: true);
+}
+```
+
+The point of index `i` belongs to the bar of index `i`. Keep this true: add a point for every bar, hidden when it has no value yet.
+
+Then set the value where you calculate it:
+
+```csharp
+var point = Average.BaseSeries.Points[index];
+point.Y[0] = value;
+point.IsHidden = false;
+```
+
+`Y` has one value for most styles, two for `Range` (upper and lower), four for `Candlestick` (high, low, open, close).
+
+## Optional series
+
+Set `Enabled` in `OnSet` to create a series only when a parameter asks for it:
+
+```csharp
+Average.Enabled = ShowAverage;
+```
+
+A series which is not enabled has `BaseSeries == null`: check it before adding points.
+
+## Point options
+
+| Property | Meaning |
+|---|---|
+| `Y` | the values |
+| `IsHidden` | the point is not drawn |
+| `BreakPoint` | the line is interrupted at this point |
+| `LineColor`, `BackColor` | color of this point, see [Colors](/concepts/colors) |
+| `Text`, `FontSize`, `ShowLabel` | a label on the point |
+| `PointWidth` | width of a bar, when it differs from the default |

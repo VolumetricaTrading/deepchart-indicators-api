@@ -1,0 +1,59 @@
+---
+title: "Introduction"
+description: "Write your own indicators for Deepchart in C#."
+---
+
+A Deepchart indicator is a C# class in a dll. Deepchart loads the dll, lists the indicators it contains, and lets you add them to a chart like the built-in ones: with their parameters in the settings window, their series in the chart, and their state saved in the workspace.
+
+This repository is a ready-to-build project with seven small example indicators, and these pages explain how each part works.
+
+## What you write
+
+An indicator derives from `VolSysAPI.Indicators.Indicator` and has four parts:
+
+- a static `Register()` method which says how the indicator is listed;
+- **parameters**: its public properties;
+- **series** and **annotations**: what it draws;
+- the **calls of the chart** it overrides (`OnOpen`, `OnClose`, `OnTick`, ...), where it calculates.
+
+```csharp
+public class SimpleMovingAverage : Indicator
+{
+    public static IndicatorDescriptionBase Register() =>
+        new IndicatorDescriptionBase { Name = "Example - Simple Moving Average" };
+
+    public int Length { get; set; } = 20;
+
+    [AverageSeries]
+    public ChartSeriesDefinition Average { get; private set; }
+
+    public override void OnSet(bool setDefault, bool themeOverride)
+    {
+        OnOpenCall = OnCloseCall = CallHandler.HistRT;
+    }
+    // OnOpen, OnClose ...
+}
+```
+
+## Hybrid indicators
+
+The indicators described here are called **hybrid**: the same dll can be calculated by the desktop chart and by the Deepchart server. To make that possible, an indicator does not use the chart control directly. It draws through a small set of interfaces (`IChartSeries`, `IChartPoint`, `IAnnotation`, `IAnnGroup`, `IAxis`) and reads its data through the chart API (`VAn`).
+
+Some features exist only on the desktop chart, the order book for example. They are marked `[DesktopOnly]` in the API: an indicator can still use them, and it is then calculated on the desktop. See [Desktop only features](/hybrid/desktop-only).
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" href="/quickstart">
+    Build the examples and see them on a chart.
+  </Card>
+  <Card title="Life cycle" href="/concepts/lifecycle">
+    Which methods the chart calls, and when.
+  </Card>
+  <Card title="Examples" href="/examples/simple-moving-average">
+    Seven indicators, one concept each.
+  </Card>
+  <Card title="API reference" href="/reference/indicator">
+    Every member an indicator can use.
+  </Card>
+</CardGroup>

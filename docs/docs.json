@@ -1,0 +1,63 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Deepchart Indicators",
+  "colors": {
+    "primary": "#2563EB"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get started",
+        "pages": ["introduction", "quickstart", "project-setup"]
+      },
+      {
+        "group": "Concepts",
+        "pages": [
+          "concepts/lifecycle",
+          "concepts/parameters",
+          "concepts/series",
+          "concepts/annotations",
+          "concepts/colors",
+          "concepts/axes-and-placement",
+          "concepts/market-data",
+          "concepts/alerts"
+        ]
+      },
+      {
+        "group": "Desktop and server",
+        "pages": [
+          "hybrid/hybrid-indicators",
+          "hybrid/desktop-only",
+          "hybrid/developer-id",
+          "hybrid/sharing"
+        ]
+      },
+      {
+        "group": "Examples",
+        "pages": [
+          "examples/simple-moving-average",
+          "examples/price-bands",
+          "examples/session-range-box",
+          "examples/info-label",
+          "examples/bar-poc",
+          "examples/live-delta",
+          "examples/book-imbalance"
+        ]
+      },
+      {
+        "group": "API reference",
+        "pages": [
+          "reference/indicator",
+          "reference/chart-api",
+          "reference/rendering",
+          "reference/attributes-and-types"
+        ]
+      },
+      {
+        "group": "Help",
+        "pages": ["troubleshooting"]
+      }
+    ]
+  }
+}

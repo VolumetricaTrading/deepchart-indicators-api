@@ -1,0 +1,56 @@
+---
+title: "Price Bands"
+description: "Several series, parameters of every kind, and point colors."
+---
+
+**Source:** `src/Basics/PriceBands.cs` · **Calculated on:** desktop or server
+
+An average with a band at a number of standard deviations above and below it. The band changes color with the direction of the price and fades when it is narrow.
+
+## What it shows
+
+- Two series, one of them optional.
+- A series with two values per point (`SeriesType.Range`).
+- Parameters: number with decimals, switch, color, nested object.
+- The sources of a color and how to mix them.
+
+## An optional series
+
+```csharp
+public override void OnSet(bool setDefault, bool themeOverride)
+{
+    Average.Enabled = ShowAverage;
+    // ...
+}
+```
+
+A series which is not enabled is not created, so every use of it checks `Average.BaseSeries != null`.
+
+## Two values per point
+
+```csharp
+var bandPoint = Band.BaseSeries.Points[index];
+bandPoint.Y[0] = upper;
+bandPoint.Y[1] = lower;
+```
+
+## Point colors
+
+```csharp
+ColorRef color = rising ? Band.PrimaryColor : Band.SecondaryColor;   // colors of the series
+if (isSqueeze)
+    color = VAn.GetFadedColor(color, SqueezeColor, 0.7);             // mixed with a parameter
+bandPoint.LineColor = color;
+bandPoint.BackColor = color.WithOpacity(40);                        // transparent fill
+```
+
+The series attribute sets `OverrideAutoColor = true` because the indicator colors every point itself. The defaults of the series are theme colors, so the band is green and red in the tones of the theme of the user, who can still change them.
+
+## Two calls instead of three
+
+This example does not use `OnClose`. `OnOpen` adds the new point and gives the previous bar its final value, `OnEnd` updates the last bar. For an indicator whose calculation is the same for a closed and an open bar, it is the shortest form.
+
+## Try
+
+- Add a second band at another number of deviations, with its own series.
+- Move the color of the squeeze into the nested `SqueezeSettings` object.

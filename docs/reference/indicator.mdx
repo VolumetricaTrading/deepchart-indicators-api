@@ -1,0 +1,76 @@
+---
+title: "Indicator"
+description: "The base class of a hybrid indicator."
+---
+
+`VolSysAPI.Indicators.Indicator` (in `VolSysAPI.dll`) is the class every hybrid indicator derives from. Members marked **desktop** are `[DesktopOnly]`, see [Desktop only features](/hybrid/desktop-only).
+
+## Registration
+
+```csharp
+public static IndicatorDescriptionBase Register()
+```
+
+A static method the indicator must declare. Deepchart finds the indicators of a dll by it.
+
+| `IndicatorDescriptionBase` | Meaning |
+|---|---|
+| `Name` | name in the indicator list |
+| `Description` | short text shown with the name |
+| `HelpLink` | address of a help page |
+| `Tags` | words used by the search of the list |
+
+## What the indicator works with
+
+| Member | Type | Meaning |
+|---|---|---|
+| `VAn` | `IMethodCloudAPI` | the [chart API](/reference/chart-api) |
+| `IndVars.Ann_List` | `IAnnGroup` | group of the annotations of the indicator |
+| `IndVars.FrontAnnList` | `IAnnGroup` | annotations drawn on the foreground |
+| `AxisX`, `AxisY` | `IAxis` | axes of the area of the indicator, available from `OnInit` |
+| `ChartArea` | `ChartAreaRef` | the area the user placed the indicator in |
+| `IndPrms` | `BaseIndicatorPrms` | settings chosen by the user, series settings included |
+| `TradingApi` | `ITradingAPI` | orders and positions. **desktop** |
+
+## Methods to override
+
+| Method | Called |
+|---|---|
+| `OnSet(bool setDefault, bool themeOverride)` | before every load and when a parameter changes. The only one you must override |
+| `OnPreInit()`, `OnInit()` | once per load, before the series exist |
+| `OnLoad()` | before the first bar |
+| `OnOpen(bool isRt)` | a new bar |
+| `OnTick(TickByTick tick, bool isRt, AggrInfo aggrInfo)` | a trade |
+| `OnClose(bool isRt)` | a bar is complete |
+| `OnEnd(bool isRt)` | after the history, and after every batch of realtime updates |
+| `OnDispose()` | the indicator is removed |
+| `OnSaveProperty()` | the settings are about to be saved. Never called on the server |
+| `OnBook(BookUpdate updates)` | order book changes. **desktop** |
+| `OnResizeAxis(bool isFinal)` | the axes are being resized. **desktop** |
+
+See [Life cycle](/concepts/lifecycle) for the order.
+
+## Set in OnSet
+
+| Property | Meaning |
+|---|---|
+| `OnOpenCall`, `OnCloseCall`, `OnTickCall`, `OnEndCall` | which calls the indicator wants: `Off`, `RT`, `HistRT` |
+| `OnBookCall`, `OnResizeCall`, `OnFundInfoCall` | **desktop** |
+| `NeedVbp` | the indicator reads the volume by price of the bars |
+| `Description` | text shown next to the name on the chart |
+
+## Other properties
+
+| Property | Meaning |
+|---|---|
+| `StatusMessage` | message for the user shown when the chart has loaded. Set in `OnInit` or `OnLoad` |
+| `NeedRecalculate` | set to `true` to ask for a new calculation from the first bar |
+| `IsValid` | `false` when the indicator has been stopped after an error |
+
+## Helpers
+
+| Method | Meaning |
+|---|---|
+| `GetSeriesDefinitions()` | the series declared by the indicator, in plot order |
+| `GetSeries(definition)` | the settings the user chose for a series (`Series_Prop`) |
+| `SetYAxisConstraints(...)` | margins and limits of the Y axis in one call |

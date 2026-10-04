@@ -1,0 +1,64 @@
+---
+title: "Simple Moving Average"
+description: "The smallest useful indicator: one series, two parameters."
+---
+
+**Source:** `src/Basics/SimpleMovingAverage.cs` · **Calculated on:** desktop or server
+
+Start here. This example has every part an indicator needs and nothing else.
+
+## What it shows
+
+- `Register()`: how the indicator is listed.
+- Two parameters, a number and an enum.
+- One series, declared with its attribute.
+- The three most used calls: `OnOpen`, `OnClose`, `OnEnd`.
+
+## How it works
+
+`OnSet` asks for the calls and sets the description shown on the chart:
+
+```csharp
+public override void OnSet(bool setDefault, bool themeOverride)
+{
+    OnOpenCall = CallHandler.HistRT;
+    OnCloseCall = CallHandler.HistRT;
+    OnEndCall = CallHandler.HistRT;
+    Description = $"SMA ({Length})";
+}
+```
+
+`OnOpen` adds a hidden point for every new bar, so the point of index `i` is always the one of the bar `i`:
+
+```csharp
+public override void OnOpen(bool isRt)
+{
+    VAn.AddPointToSeries(Average.BaseSeries, VAn.BarIndex, IsHidden: true);
+}
+```
+
+`OnClose` keeps a running sum of the last `Length` closed bars, which makes every bar cost the same whatever the length:
+
+```csharp
+public override void OnClose(bool isRt)
+{
+    int index = VAn.BarIndex;
+    sum += GetSource(index);
+    if (index >= Length)
+        sum -= GetSource(index - Length);
+    if (index >= Length - 1)
+        SetPoint(index, sum / Length);
+}
+```
+
+`OnEnd` updates the bar still open without touching the sum: the closed bars are already in it.
+
+## Things to notice
+
+- `OnLoad` resets `sum`. Without it, changing a parameter would start the new calculation from the old total.
+- The first `Length - 1` points stay hidden: there are not enough bars for a value.
+
+## Try
+
+- Add an exponential average as a second value of the enum.
+- Add a parameter to shift the average by some bars.
