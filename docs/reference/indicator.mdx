@@ -43,7 +43,7 @@ A static method the indicator must declare. Deepchart finds the indicators of a 
 | `OnTick(TickByTick tick, bool isRt, AggrInfo aggrInfo)` | a trade |
 | `OnClose(bool isRt)` | a bar is complete |
 | `OnEnd(bool isRt)` | after the history, and after every batch of realtime updates |
-| `OnDispose()` | the indicator is removed |
+| `OnDispose()` | the calculation stops. Called only by the server |
 | `OnSaveProperty()` | the settings are about to be saved. Never called on the server |
 | `OnBook(BookUpdate updates)` | order book changes. **desktop** |
 | `OnResizeAxis(bool isFinal)` | the axes are being resized. **desktop** |

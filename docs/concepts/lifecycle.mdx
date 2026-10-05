@@ -24,7 +24,7 @@ An indicator does not run by itself. The chart calls its methods while it loads 
     For every trade, `OnTick`. When a bar ends, `OnClose` for it and `OnOpen` for the new one. After each batch of updates, `OnEnd(true)`: the place to update what depends on the bar still open.
   </Step>
   <Step title="OnDispose">
-    Called when the indicator is removed from the chart.
+    Called by the server when the calculation of the indicator stops. The desktop chart does not call it: do not rely on it to release anything.
   </Step>
 </Steps>
 

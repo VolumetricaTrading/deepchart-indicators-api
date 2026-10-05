@@ -33,6 +33,22 @@ description: "The build fails, or the indicator does not appear."
   <Accordion title="The developer id is missing or wrong">
     The most common cause. The build warns when the id is still `YOUR-DEV-ID`, and the log of Deepchart says `DeepchartDevId ... is not the one of the user`. See [Developer id](/hybrid/developer-id).
   </Accordion>
+  <Accordion title="The dll uses something which is not allowed">
+    Deepchart checks a dll before loading it, and does not load it when it uses anything outside what an indicator may use. A notification names the dll, and the log lists every use with the method it is in:
+
+    ```
+    MyIndicator.OnLoad: 'System.IO.File' is not allowed
+    ```
+
+    An indicator may use:
+
+    - the indicator API: `VolSysAPI`, `VolumetricaAPI.Chart`, and the types of `VolumetricaCore` the API gives you;
+    - the basic types of `System` (numbers, strings, `Math`, `DateTime`, `TimeSpan`, `Convert`, `Random`, the common exceptions, `Func` and `Action`), `System.Collections.Generic`, LINQ to objects, `StringBuilder`, `CultureInfo`;
+    - the attributes of `System.ComponentModel`, `System.ComponentModel.DataAnnotations`, `System.Text.Json.Serialization` and `VolumetricaControls` for the parameters;
+    - `Debug`, `Stopwatch` and `Console` while you develop.
+
+    Everything else is rejected: reflection, `dynamic`, files, network, processes, threads, tasks and `async`, `lock`, `unsafe` code and `DllImport`, and references to other libraries.
+  </Accordion>
   <Accordion title="The class has no Register method">
     An indicator is listed only if it has a `public static` method named `Register` returning `IndicatorDescriptionBase`.
   </Accordion>
