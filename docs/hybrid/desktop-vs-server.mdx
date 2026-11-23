@@ -1,0 +1,73 @@
+---
+title: "Desktop or server"
+description: "What changes, for you and for your users, when an indicator is calculated on the desktop or on the server."
+---
+
+A hybrid indicator can be calculated by the chart of the user or by the Deepchart server. [Hybrid indicators](/hybrid/hybrid-indicators) explains how the same code runs in both places. This page is about what the choice means: where your code ends up, what it can reach, and what each side has to trust.
+
+## Where the code is
+
+| | Desktop | Server |
+|---|---|---|
+| The dll is on | the computer of every user who adds the indicator | the server only |
+| Executed by | the Deepchart of each user | the server, once for every chart with the same symbol, bars and parameters |
+| The user receives | the dll | what the indicator draws |
+| Can reach | the desktop API: order book, other indicators, other symbols, [trading](/concepts/trading) | the portable API only |
+
+A local dll and a shared package are both desktop. A server package is server. See [Sharing indicators](/hybrid/sharing) for how each one reaches a chart.
+
+## Your know-how
+
+A .NET dll is not a secret. Anyone who has the file can read its code with a free decompiler, and obfuscation slows this down without preventing it. So:
+
+- **A desktop package gives your code to every user.** This is fine for an indicator you sell as a tool, or share with people you trust. It is not fine for a model you consider the product itself.
+- **A server package keeps the code on the server.** The chart of the user asks for the indicator with its parameters and receives points and annotations. Nothing of the logic travels.
+
+The price of the protection is the portable API: an indicator which needs the order book, the trades of the history, another indicator of the chart or the trading interface is a desktop one, and so is the whole package it is in. Keep the proprietary part portable and, when a desktop feature is needed, put it in a separate dll (see [Mixing indicators](/hybrid/desktop-only#mixing-indicators)).
+
+## What the user trusts
+
+A desktop indicator runs inside the Deepchart of the user, with the data of their charts and account around it. Deepchart limits what a dll can do before it loads it:
+
+- **The dll is checked.** Deepchart reads it before loading it and refuses it when it uses anything outside the indicator API and a small set of basic types: no files, no network, no processes, no threads, no reflection, no other libraries. The log names what was found. See [Troubleshooting](/troubleshooting#the-indicator-is-not-in-the-list).
+- **A local dll is tied to a developer.** It is loaded only when it carries the [developer id](/hybrid/developer-id) of the logged user: nobody runs a dll copied into their folder by someone else.
+- **A package is reviewed.** A package published for other users is reviewed by Volumetrica before it is distributed.
+- **Trading is limited.** An indicator can send orders only on a backtesting account or on a simulation account, never on a paper or live one. See [Trading](/concepts/trading).
+
+A server indicator runs nothing on the computer of the user. By construction it has no access to their account, their order book or their files: the server does not have them.
+
+<Note>
+  These limits are there to protect the user. They also protect you: an indicator which stays inside them is one you can publish without thinking about what it could reach on someone else's machine.
+</Note>
+
+## Day to day
+
+| | Desktop | Server |
+|---|---|---|
+| Computing cost | the CPU of the user: a heavy indicator slows their charts | the server, shared between the charts with the same settings |
+| Trades of the history | available (`OnTickCall = HistRT`) | not replayed: the history comes from the bars |
+| Realtime | every trade, the book, the axes | every trade (`OnTickCall = RT`) |
+| Messages and sounds | shown and played | nothing for now |
+| Updating the indicator | a new dll on every computer (automatic for a shared package) | one deployment |
+| Debugging | attach a debugger, `Debug` output, the log of the app | the log of the server |
+| Determinism | not required | required: the same bars must give the same result. No clock, no static state, no files |
+| Time limits | none | every call, see below |
+
+## Time limits on the server
+
+The server calculates many indicators at once, so every call into an indicator has a time limit, measured on the clock. An indicator which goes over it, or which goes too deep in a recursion, is stopped: the charts which show it get `Indicator stopped: time or stack limit exceeded`.
+
+| Calls | Limit |
+|---|---|
+| creation: the constructor, the parameters, `OnSet` | 4 seconds |
+| start: `OnPreInit`, `OnInit`, `OnLoad`, the bars already on the chart and, when the history is complete, `OnEnd(false)` | 5 seconds in all |
+| every call after the start: `OnOpen`, `OnClose` and `OnTick`, also for the bars of the history which arrive later, `OnEnd(true)`, `OnDispose` | 250 ms each |
+| `OnEnd(false)`, when the history arrives after the start | 5 seconds |
+
+Do the work of a bar in its own `OnOpen` and `OnClose`. A calculation of the whole history in `OnEnd(false)` has 5 seconds for every bar together.
+
+## Choosing
+
+- The logic is the value, and it needs only the bars: write it with the portable API and keep it ready for a server package.
+- The indicator is a tool around the order book, the trades of the history or the trading interface: it is a desktop one. Keep it in its own dll.
+- You are not sure: start portable. Adding a desktop feature later is one attribute away; removing one is a rewrite.

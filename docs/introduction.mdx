@@ -5,7 +5,11 @@ description: "Write your own indicators for Deepchart in C#."
 
 A Deepchart indicator is a C# class in a dll. Deepchart loads the dll, lists the indicators it contains, and lets you add them to a chart like the built-in ones: with their parameters in the settings window, their series in the chart, and their state saved in the workspace.
 
-This repository is a ready-to-build project with seven small example indicators, and these pages explain how each part works.
+The repository [VolumetricaTrading/deepchart-indicators-api](https://github.com/VolumetricaTrading/deepchart-indicators-api) is a ready-to-build project with nine small example indicators, and these pages explain how each part works. Clone it to start your own library.
+
+<Note>
+  These pages are about Deepchart. Deepdom, the order book chart, has its own API and its own examples: see the [Deepdom](/deepdom/introduction) tab.
+</Note>
 
 ## What you write
 
@@ -39,7 +43,7 @@ public class SimpleMovingAverage : Indicator
 
 The indicators described here are called **hybrid**: the same dll can be calculated by the desktop chart and by the Deepchart server. To make that possible, an indicator does not use the chart control directly. It draws through a small set of interfaces (`IChartSeries`, `IChartPoint`, `IAnnotation`, `IAnnGroup`, `IAxis`) and reads its data through the chart API (`VAn`).
 
-Some features exist only on the desktop chart, the order book for example. They are marked `[DesktopOnly]` in the API: an indicator can still use them, and it is then calculated on the desktop. See [Desktop only features](/hybrid/desktop-only).
+Some features exist only on the desktop chart, the order book and trading for example. They are marked `[DesktopOnly]` in the API: an indicator can still use them, and it is then calculated on the desktop. See [Desktop only features](/hybrid/desktop-only), and [Desktop or server](/hybrid/desktop-vs-server) for what the choice means for you and for your users.
 
 ## Where to go next
 
@@ -51,7 +55,7 @@ Some features exist only on the desktop chart, the order book for example. They 
     Which methods the chart calls, and when.
   </Card>
   <Card title="Examples" href="/examples/simple-moving-average">
-    Seven indicators, one concept each.
+    Nine indicators, one concept each.
   </Card>
   <Card title="API reference" href="/reference/indicator">
     Every member an indicator can use.

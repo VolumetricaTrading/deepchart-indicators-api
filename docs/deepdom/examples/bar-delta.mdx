@@ -1,0 +1,74 @@
+---
+title: "Bar Delta"
+description: "The smallest useful indicator: an area, a series, three parameters."
+---
+
+**Source:** `src/Deepdom/Basics/BarDelta.cs`
+
+Start here. This example has every part an indicator needs and nothing else: the delta of every bar, ask volume minus bid volume, as a histogram in an area of its own.
+
+## What it shows
+
+- `Register()`: how the indicator is listed.
+- The constructor every indicator must have.
+- Three parameters: a number and two theme colors.
+- A chart area and a series, created in `OnSet`.
+- The three most used calls: `OnOpen`, `OnTickClose`, `OnEnd`.
+- A line in the tooltip of the chart.
+
+## How it works
+
+`OnSet` asks for the calls, then creates the area and the series. When `setDefault` is `true` the indicator is being created from the list and the chart is not there yet, so it returns before touching `Vbk`:
+
+```csharp
+public override void OnSet(bool setDefault, bool haveToChangeTheme)
+{
+    IndPrms.OnOpenCall = CallHandler.HistRT;
+    IndPrms.OnCloseTickCall = CallHandler.HistRT;
+    IndPrms.OnEndCall = CallHandler.HistRT;
+    if (setDefault)
+        return;
+    area = CreateCA(false, "Delta");
+    Vbk.GetAxisY(area).FormatAutoNumber = true;
+    delta = Vbk.AddSeries(area, "Delta", SeriesType.Bars, AskColor, 2);
+}
+```
+
+`OnOpen` adds a hidden point for every new bar, so the point of index `i` is always the one of the bar `i`:
+
+```csharp
+public override void OnOpen(bool isRt)
+{
+    Vbk.AddPointToSeries(delta, Vbk.BookIndex, 0, true);
+}
+```
+
+`OnTickClose` writes the value of a bar when its trades are complete, with `TickIndex`, and `OnEnd` updates the bar still open:
+
+```csharp
+public override void OnTickClose(bool isRt)
+{
+    SetPoint(Vbk.TickIndex);
+}
+
+private void SetPoint(int index)
+{
+    var bar = Vbk.BookBars[index];
+    int value = bar.AskVol - bar.BidVol;
+    var point = delta.Points[index];
+    point.Y[0] = Math.Abs(value) >= MinVolume ? value * Vbk.VolMultiplier : 0;
+    point.LineColor = value >= 0 ? AskColor : BidColor;
+    point.IsHidden = false;
+}
+```
+
+## Things to notice
+
+- The volumes of a bar are read in `OnTickClose`, not in `OnBookClose`: see [Two indices](/deepdom/concepts/lifecycle#two-indices).
+- The value is multiplied by `VolMultiplier`, so it is right for symbols traded in fractions.
+- `OnChartBuildTooltip` answers only for the area of the indicator (`CAIndex == CA.Value.Index`).
+
+## Try
+
+- Add the number of trades instead of the volume, with a parameter to choose.
+- Color the bar by whether the delta agrees with the move of the best bid.

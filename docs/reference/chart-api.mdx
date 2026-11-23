@@ -13,9 +13,13 @@ description: "VAn: data of the chart and creation of what the indicator draws."
 | `CreateAnnotation(annotationType)` | a new annotation, drawn once it is added to a group |
 | `CreateAnnGroup()` | a new group of annotations |
 | `AddAnnotation(group, annotation)` | adds an annotation to a group and to the chart |
-| `GetFadedColor(baseColor, fadeColor, percent)` | a mix of two colors |
+| `GetFadedColor(baseColor, fadeColor, percent)` | a mix of two colors, `percent` from 0 to 1 |
+| `GetFadedColorPercent(baseColor, fadeColor, percent)` | the same with `percent` from 0 to 100, a value or a `PlotIntRef` parameter, see [Colors](/concepts/colors#changes-bound-to-a-parameter) |
 | `IMethodAPI.GetColorRefForTheme(reference, type, range = null)` | a color of the theme (static) |
 | `IMethodAPI.GetColorForTheme(...)` | the resolved theme color. **desktop** |
+| `GetChartBackColor()` | the background color the user set for the chart. **desktop** |
+| `GetChartAreaMeasures(area)` | sizes of an area as it is drawn now: `PixelWidth`, `PixelHeight`, `PixelsPerXUnit` (from a bar to the next), `PixelsPerYUnit`. They change with the zoom and the window: read them again in `OnResizeAxis`. **desktop** |
+| `CreateAnnInteractionManager(onTrigger)` | ends the levels the price touches, see [Levels touched by the price](#levels-touched-by-the-price) |
 
 ## Bars
 
@@ -31,6 +35,7 @@ description: "VAn: data of the chart and creation of what the indicator draws."
 | `GetSecondsToClose()` | seconds left before a time bar closes |
 | `BuildTicksBar(bar, filter = null)` | the trades of a bar rebuilt from its volume by price |
 | `GetBarVars()`, `GetVolumeVbp()`, `GetMinuteVbp(interval)` | secondary bars. **desktop** |
+| `AddNewFilter(min, max, inputType, vbpType, interval, needVbp)` | asks in `OnInit` for the data of a filter of the volume, or for the bars of `GetVolumeVbp` and `GetMinuteVbp`. It returns the index of the filter in `VolTotList`. **desktop** |
 | `PullbackBar`, `PullbackSourceInfo`, `SetNeedPullbackBar()` | **desktop** |
 
 ## Symbol and chart
@@ -40,12 +45,18 @@ description: "VAn: data of the chart and creation of what the indicator draws."
 | `SymbolName`, `SymbolFullName`, `SymbolDescription` | the symbol |
 | `ChartName` | name of the chart, useful as title of a message |
 | `ParamType`, `Param1`, `Param2` | type and size of the bars |
-| `IniTimeSession`, `EndTimeSession` | start and end of the session |
+| `IniTimeSession`, `EndTimeSession` | start and end of the session of the chart |
+| `SymbolIniTimeSession`, `SymbolEndTimeSession` | start and end of the regular session (RTH) of the symbol, exchange time, whatever the session of the chart |
+| `SymbolIniGlobalTimeSession` | start of the trading day of the symbol, exchange time: the start of the extended session (ETH) when the symbol has one |
 | `GetIniSessionDt(exchangeTime)` | start of the session a time belongs to |
 | `LastExDt` | exchange time of the last update |
 | `VolMultiplier` | factor between the integer volumes and the real volume (cryptocurrencies) |
 | `IsReplayData` | the chart is a replay |
 | `PointWidth` | width of a bar on the X axis |
+| `IsProfileChart` | the indicator is on the Profile chart, see [The Profile chart](/concepts/annotations#the-profile-chart). Always `false` on the server |
+| `NewSessionAnnotationGroup(IndVars, sessionIndex, exchDt)` | a group of a session of the Profile chart. **desktop** |
+| `GetSessionAnnotationGroupByXIndex(x)` | the group of the Profile chart at a position of the X axis, `null` when there is none. **desktop** |
+| `GetMainPointsCount()` | positions of the X axis: the bars, or on the Profile chart the width of the visible groups. **desktop** |
 
 ## Prices
 
@@ -55,6 +66,10 @@ description: "VAn: data of the chart and creation of what the indicator draws."
 | `FromPrice(price)` | integer ticks from a price |
 | `GetDoubleTicksDiff(from, to)`, `GetIntTicksDiff(from, to)` | ticks between two prices |
 | `DoubleAddSubTicks(price, ticks)`, `IntAddSubTicks(pinT, ticks)` | a price moved by some ticks |
+| `IntAddSubTicks(pinT, ticks, out p)` | the same in `p`, and `true` when the tick size changes on the way |
+| `IsNotFixedTickSize` | the tick size depends on the price (some stock markets): the ticks between two prices are not proportional to their difference |
+| `MinAllowedTickGrouping` | ticks of a price level of the volume by price of the bars (`PriceList` steps by it): 1 when the chart does not group the prices. A grouping chosen by the indicator should be a multiple of it |
+| `FormatPrice(price)` | a price as text, with the decimals of the symbol |
 | `FormatVolume(value, autoFormat = true, format = null)` | a volume as text (1.5K) |
 | `CalculatePnl(open, close, volume = 1, isLong = true)` | profit of a trade in the currency of the symbol |
 
@@ -71,8 +86,8 @@ description: "VAn: data of the chart and creation of what the indicator draws."
 
 | Member | Meaning |
 |---|---|
-| `RequestResolution(paramType, param1, param2, daysToLoad = null, basedOnMinute = null)` | another bar size of the symbol of the chart. On the server only the bar size of the chart itself is available for now |
-| `RequestResolution(symbol, ...)` | data of another symbol. **desktop** |
+| `RequestResolution(paramType, param1, param2, daysToLoad = null, basedOnMinute = null)` | another bar size of the symbol of the chart, see [Other resolutions](/concepts/resolutions). On the server only the bar size of the chart itself is available for now |
+| `RequestResolution(symbol, ...)` | data of another symbol, see [Other resolutions](/concepts/resolutions). **desktop** |
 | `RebuildDom()` | the order book as it is now. **desktop** |
 | `GetParamsById(index)`, `GetSeriesValueById(indicator, series, index)` | other indicators of the chart. **desktop** |
 
@@ -82,4 +97,123 @@ description: "VAn: data of the chart and creation of what the indicator draws."
 |---|---|
 | `ShowMessage(text, title)` | a message for the user. Realtime only |
 | `PlayAlert(alertName)` | plays an alert sound. Realtime only |
-| `AddToLog(message, level, source = null, showToast = null)` | writes to the log of the app |
+| `AddToLog(IndVars, message, level, source = null, showToast = null)` | writes to the log of the app as this indicator: without a source the row has its name |
+| `AddToLog(message, level, source = null, showToast = null)` | the same, without telling which indicator writes |
+
+## Shared values
+
+An indicator can make named values available to the other indicators of the chart, bar by bar. It registers in `OnInit` and writes with its own `IndVars`; the others read by the id it registered with. A value is a number or a text.
+
+```csharp
+// The indicator which shares
+public override void OnInit()
+{
+    VAn.RegisterSharedValues(IndVars, "MyTrend");
+}
+public override void OnClose()
+{
+    VAn.SetSharedValue(IndVars, "direction", direction);
+}
+
+// Another indicator of the chart
+double direction = VAn.GetSharedValue("MyTrend", VAn.BarIndex, "direction");
+```
+
+| Member | Meaning |
+|---|---|
+| `RegisterSharedValues(IndVars, id = null)` | makes the values of the indicator available under an id. Without an id: the name of the indicator. Call it in `OnInit`. **desktop** |
+| `SetSharedValue(IndVars, name, value)` | writes a named number or text for the bar being calculated. The same name on the same bar is overwritten. **desktop** |
+| `SetSharedValue(IndVars, barIndex, name, value)` | the same for another bar. **desktop** |
+| `HasSharedValues(indicatorId)` | an indicator of the chart registered with this id. Ask from `OnLoad` on. **desktop** |
+| `GetSharedValue(indicatorId, barIndex, name)` | a number of another indicator; `NaN` when it is not there or is a text. **desktop** |
+| `GetSharedText(indicatorId, barIndex, name)` | a text of another indicator; `null` when it is not there or is a number. **desktop** |
+| `GetSharedValues(indicatorId, barIndex)` | every value of another indicator for a bar, by name (`Number`, and `Text` which is `null` for a number); `null` when there is none. **desktop** |
+
+- **Order.** The indicators are calculated in the order of the chart. The value of the bar being calculated is there only when the indicator which writes it comes before the one which reads it.
+- **Recalculation.** The values are emptied every time the indicator which shares them is calculated again, right before its `OnLoad`. The indicators which read them are not calculated again with it.
+- **Same id.** When two indicators register with the same id, the first one of the chart keeps it and the other shares nothing: give each its own id.
+
+## Levels touched by the price
+
+`CreateAnnInteractionManager` follows horizontal levels, usually extended to the right, and ends each one when the price touches it. The line stops at the bar of the touch (`X2`), `IsExtended` and `ShowPrice` become `false`, and `onTrigger` is called with the annotation (`null`: nothing to call). It works on the desktop and on the server.
+
+```csharp
+IAnnGroup levels;
+IAnnInteractionManager touches;
+
+public override void OnLoad()
+{
+    levels = VAn.CreateAnnGroup();
+    IndVars.Ann_List.AddGroup(levels);
+    touches = VAn.CreateAnnInteractionManager(null);
+}
+
+public override void OnClose(bool isRt)
+{
+    var bar = VAn.BarVars[VAn.BarIndex];
+    touches.onClose(bar);   // ends the levels this bar touches
+    if (VAn.IsHighest(VAn.BarIndex, 20))
+    {
+        var level = VAn.CreateAnnotation(AnnotationType.HorizontalLine);
+        level.X = VAn.BarIndex + 1;
+        level.Y = bar.High;
+        level.IsExtended = true;
+        VAn.AddAnnotation(levels, level);
+        touches.AddAnn(bar, level, false);
+    }
+}
+```
+
+| Member of `IAnnInteractionManager` | Meaning |
+|---|---|
+| `AddAnn(bar, annotation, useY2, zoneMode, invertSuppAndRes, forcePrice)` | follows a level from `bar`: its close says whether the level is a support (below) or a resistance (above). `useY2`: a zone between `Y` and `Y2`. `zoneMode` forces a zone to be a support or a resistance, `invertSuppAndRes` checks its near side instead of the far one, `forcePrice` is a price to check instead of `Y` |
+| `onClose(bar)` | checks the levels against a closed bar. Call it in `OnClose`, for every bar |
+| `RemoveAnn(annotation)` | stops following a level, without changing it |
+| `ResetLines(x)` | ends every level at `x`, without calling `onTrigger`, and forgets them |
+| `Init()` | forgets every level, without changing them |
+| `AnnLevels` | the levels still followed |
+| `CalculateOnShadow` | `true`: the touch is checked on the high and the low of the bar. `false` (the default): on its open and close |
+| `TickBreakoutMargin` | ticks the price has to go beyond the level for the touch to count. `0` (the default): any cross |
+| `MaxExtension` | when over 0, a level ends anyway after this number of bars |
+| `KeepTriggeredZone` | `true`: a level stays after the first cross, and ends when the price crosses it back |
+
+## Context menu
+
+An indicator can add its own items to the menu the user opens with a right click on the chart. Override `OnContextMenu` and add the items there with `VAn.AddMenuItem`: they are shown in a submenu with the name of the indicator.
+
+```csharp
+readonly List<int> marks = new List<int>();
+
+public override void OnContextMenu(ChartAreaRef? area, int? barIndex)
+{
+    // Only on the area of the indicator, over a bar
+    if (area != ChartArea || barIndex == null)
+        return;
+    VAn.AddMenuItem(this, "Mark this bar", MarkBar, true, barIndex.Value);
+    VAn.AddMenuItem(this, "Clear marks", (a, b, p) => { marks.Clear(); NeedRecalculate = true; }, marks.Count > 0);
+}
+void MarkBar(ChartAreaRef? area, int? barIndex, object param)
+{
+    marks.Add((int)param);
+    NeedRecalculate = true;
+}
+```
+
+| Member | Meaning |
+|---|---|
+| `OnContextMenu(area, barIndex)` | method of the indicator, called while the menu is being built. `barIndex` is the bar under the mouse (`VAn.BarVars`), `null` when there is none. **desktop** |
+| `AddMenuItem(this, header, clickCallback, enabled = true, param = null)` | adds an item. A disabled item is shown but can not be clicked. `clickCallback` gets the `area` and `barIndex` of the menu and `param`. **desktop** |
+
+- **Area.** `area == ChartArea` when the user clicks the area of the indicator, also when it is the main area of the chart; `area == ChartAreaRef.Main` when the main area is clicked and the indicator is in another one; `null` for any other area.
+- **Every right click.** The menu is built again every time it opens, so add the items every time, enabled or not by what is true at that moment.
+- **After a click** the chart is loaded again. Set `NeedRecalculate` when the indicator has to be calculated again.
+- **Errors.** An exception in `OnContextMenu` or in a click stops the indicator, as in its other methods.
+
+## Debug
+
+For development. The values are kept only for a local indicator and are not shown in the app yet; a package which uses these members is not published.
+
+| Member | Meaning |
+|---|---|
+| `SetDebugValue(IndVars, name, value)` | writes a named number or text for the bar being calculated. The same name on the same bar is overwritten. **desktop** |
+| `SetDebugValue(IndVars, barIndex, name, value)` | the same for another bar. **desktop** |

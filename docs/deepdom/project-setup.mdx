@@ -1,0 +1,67 @@
+---
+title: "Project setup"
+description: "What the Deepdom project file does, line by line."
+---
+
+`src/Deepdom/DeepdomIndicators.csproj` is a plain class library. You can keep adding indicators to it, or copy it to start a library of your own: the repository [VolumetricaTrading/deepchart-indicators-api](https://github.com/VolumetricaTrading/deepchart-indicators-api) is meant as the template.
+
+## Target and references
+
+```xml
+<TargetFramework>net10.0</TargetFramework>
+<OutputType>Library</OutputType>
+```
+
+The project targets plain `net10.0`, without Windows or WPF. It references only the indicator API:
+
+```xml
+<Reference Include="VolBookAPI">
+  <HintPath>$(DeepdomLibDir)VolBookAPI.dll</HintPath>
+  <Private>false</Private>
+</Reference>
+<Reference Include="VolumetricaCore">
+  <HintPath>$(DeepdomLibDir)VolumetricaCore.dll</HintPath>
+  <Private>false</Private>
+</Reference>
+```
+
+| Library | What it contains |
+|---|---|
+| `VolBookAPI.dll` | `Indicator`, the chart API (`IMethodAPI`), the bars, the trades and the book types, `LiquiditySumHelper` |
+| `VolumetricaCore.dll` | the drawing interfaces, `ColorRef`, the parameter attributes |
+
+`Private` is `false` because the two libraries are part of Deepdom: they must not be copied next to your dll.
+
+Do not add references to the chart control, to WPF or to other libraries: Deepdom checks a dll before loading it and refuses one which uses anything outside the indicator API, see [Troubleshooting](/deepdom/troubleshooting#the-indicator-is-not-in-the-list).
+
+## Properties you can set
+
+| Property | Default | Meaning |
+|---|---|---|
+| `DeepdomDir` | `C:\Program Files\Volumetrica Trading\Deepdom\` | Folder Deepdom is installed in |
+| `DeepdomDevId` | `YOUR-DEV-ID` | Your [developer id](/hybrid/developer-id), written in the dll |
+| `OutputPath` | `Documents\Deepdom\Indicators\` | Where the dll is written |
+
+Each one can be changed in the file or on the command line:
+
+```bash
+dotnet build src/Deepdom/DeepdomIndicators.csproj -p:DeepdomDevId=your-id -p:OutputPath="C:\temp\out\\"
+```
+
+The build stops with a clear error when the two libraries are not in `DeepdomDir`, and warns when the developer id is still the placeholder.
+
+## Developer id in the dll
+
+```xml
+<ItemGroup>
+  <AssemblyMetadata Include="DeepdomDevId" Value="$(DeepdomDevId)" />
+</ItemGroup>
+```
+
+This writes `[assembly: AssemblyMetadata("DeepdomDevId", "...")]` in the dll. Deepdom reads it when it loads a dll from the local folder.
+
+## Your own library
+
+- Change `AssemblyName` and `RootNamespace`. The file name of the dll is part of how a workspace remembers a local indicator, so choose it once.
+- Keep the class name of an indicator stable: it is its identity inside the dll.
+- One dll can hold any number of indicators.

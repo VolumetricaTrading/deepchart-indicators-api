@@ -40,8 +40,14 @@ What you set in the attribute are **defaults**. The user can change the style, t
 | `LineWidth`, `LineStyle` | default line |
 | `PrimaryColor` ... `FourthColor` | default colors |
 | `ShortName` | label on the axis |
+| `FontSize` | default size of the texts of the points (`Text` style) which have no size of their own. `0`: the font size of the chart |
+| `CanSetFontSize` | `false`: the user cannot set the font size of the series (`true` by default) |
+| `CanSetColors` | `false`: the user cannot set the colors of the series, because the indicator does not use them (`true` by default) |
+| `AutoFontSize` | `true` (the default): the texts (`Text` style) get smaller when the bars get narrower, down to size 6. Their font size is the maximum. The width of the bar they need depends on how many bars of the series have a text (measured by the chart) and on the font size |
+| `MaxBarsViewed` | default limit of the texts (`Text` style): they are not drawn when the chart shows more bars than this. `0`: no limit |
+| `TextOnlyInside` | default of the texts (`Text` style): `true` hides the text of a point which is wider than its bar |
 | `Enabled` | `false`: the series is not created |
-| `OverrideAutoColor` | `true`: the indicator sets the color of every point itself |
+| `OverrideAutoColor` | `true`: the indicator sets the color of every point itself. The Auto Color setting is not shown; the colors are, so give the points the colors of the series to let the user change them |
 
 Common styles: `Line`, `Bars`, `Area`, `Range` (two values per point), `Candlestick` (four values), and the markers `Square`, `Cicle`, `Diamond`, `Cross`, `TriangleUp`, `TriangleDown`.
 
@@ -92,5 +98,6 @@ A series which is not enabled has `BaseSeries == null`: check it before adding p
 | `IsHidden` | the point is not drawn |
 | `BreakPoint` | the line is interrupted at this point |
 | `LineColor`, `BackColor` | color of this point, see [Colors](/concepts/colors) |
-| `Text`, `FontSize`, `ShowLabel` | a label on the point |
+| `Text`, `FontSize`, `ShowLabel` | a label on the point. Put the text on every point that shows one, not on the series. Leave `FontSize` at 0 to use the size the user sets for the series, or the size of the chart: the user can then change it without a new calculation |
+| `Tooltip` | text shown when the mouse is over the text of the point (`Text` style) |
 | `PointWidth` | width of a bar, when it differs from the default |

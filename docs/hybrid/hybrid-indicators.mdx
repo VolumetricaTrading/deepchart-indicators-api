@@ -8,7 +8,7 @@ A hybrid indicator is written once and can be calculated in two places:
 - **on the desktop**, by the chart of the user, like a built-in indicator;
 - **on the server**, which calculates it once for every chart with the same symbol, bars and parameters, and sends what it draws to the charts which show it.
 
-The code is the same. What makes it possible is that the indicator never touches the chart directly.
+The code is the same. What makes it possible is that the indicator never touches the chart directly. What the two places mean for your code and for your users is in [Desktop or server](/hybrid/desktop-vs-server).
 
 ## The portable API
 
@@ -28,6 +28,7 @@ The server has no user in front of it. So:
 
 - **The style of a series is not there.** Colors, width and style of a series are settings of each user. The indicator declares the defaults in the series attribute, the chart of each user applies its own.
 - **Colors stay references.** A theme color or a series color is resolved by each chart, see [Colors](/concepts/colors).
+- **So do the parameters which only change the look.** A color and its opacity, a line width, a line style, the visibility of a group, how many of its items are shown: the server keeps "the parameter X" and each chart applies the value of its user, see [Parameters resolved by the chart](/concepts/parameters#parameters-resolved-by-the-chart).
 - **The history is calculated with `OnOpen` and `OnClose`.** The trades of the history are not replayed.
 - **Messages and sounds do nothing** for now.
 - **Some data does not exist**: the order book, other indicators of the chart, other symbols. These members are [desktop only](/hybrid/desktop-only).
@@ -35,6 +36,8 @@ The server has no user in front of it. So:
 ## Writing code which works in both places
 
 - Use theme colors and series colors, not fixed ones, for anything the user should be able to change.
+- Use `LineWidthRef`, `LineStyleRef`, `PlotBoolRef` and `PlotIntRef` for the parameters which only change the look: the user changes them without a new calculation on the server.
+- Keep each call short: the server stops an indicator which goes over its [time limits](/hybrid/desktop-vs-server#time-limits-on-the-server).
 - Take the history from the bars (`BarVars`, `VolTotList`, volume by price) and use `OnTick` for realtime only.
 - Do not keep state in static fields: the server runs many instances of the same indicator.
 - Do not read the clock, files or the network. An indicator has to give the same result for the same bars.

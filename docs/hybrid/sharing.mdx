@@ -26,7 +26,7 @@ Each chart calculates the indicators itself, so everything an indicator can do l
 
 A package whose indicators use only the portable API can be calculated on the server. The chart of the user subscribes to the indicator with its symbol, its bars and the parameters the user chose, and receives what the indicator draws.
 
-- The code of the indicator never leaves the server.
+- The code of the indicator never leaves the server (see [Desktop or server](/hybrid/desktop-vs-server)).
 - Charts with the same symbol, bars and parameters share one calculation.
 - The user still chooses parameters, colors and styles: they are applied by each chart.
 

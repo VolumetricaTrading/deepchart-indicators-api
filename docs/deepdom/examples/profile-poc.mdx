@@ -1,0 +1,63 @@
+---
+title: "Profile POC"
+description: "The volume profile of the session and lines extended to the right."
+---
+
+**Source:** `src/Deepdom/Profile/ProfilePoc.cs`
+
+The point of control and the value area of the volume profile of the session, as horizontal lines on the price.
+
+## What it shows
+
+- `DailyProfile`, the volume by price of the session.
+- `HorizontalLine` annotations extended to the right edge of the chart.
+- `OnEnd` for what depends on the whole session.
+
+## How it works
+
+The lines are created once per load and moved as the profile changes:
+
+```csharp
+private IAnnotation CreateLine(ColorRef color, int width)
+{
+    var line = Vbk.CreateAnnotation(AnnotationType.HorizontalLine);
+    line.Area = ChartAreaRef.Main;
+    line.X = 1;
+    line.IsExtended = true;
+    line.LineColor = color;
+    line.LineWidth = width;
+    line.ShowLabel = true;
+    Vbk.AddAnnotation(lines, line);
+    return line;
+}
+```
+
+`OnEnd` reads the profile from the lowest price up, finds the level with the most volume and grows the value area from it until it holds the wanted share of the volume:
+
+```csharp
+var levels = Vbk.DailyProfile.vbpItems.SortedLHValues.ToList();
+// pocIndex: the level with the highest TotVol; total: the volume of the session
+int low = pocIndex, high = pocIndex;
+long inArea = levels[pocIndex].TotVol;
+long target = total * ValueAreaPercent / 100;
+while (inArea < target && (low > 0 || high < levels.Count - 1))
+{
+    long below = low > 0 ? levels[low - 1].TotVol : -1;
+    long above = high < levels.Count - 1 ? levels[high + 1].TotVol : -1;
+    if (above > below)
+        inArea += levels[++high].TotVol;
+    else
+        inArea += levels[--low].TotVol;
+}
+```
+
+## Things to notice
+
+- The profile is a snapshot of the whole session: during the history it already holds the trades after the current bar. That is why the indicator works in `OnEnd`, which describes the session as it is now, and not bar by bar.
+- `OnOpenCall` is set even if `OnOpen` is not overridden: an indicator which asks for `OnEnd` alone would not get `OnInit` and `OnLoad`.
+- The price of a level comes from `FromPinT(level.PriceInTicksLow)`.
+
+## Try
+
+- Add the volume weighted average price of the session as a fourth line.
+- Draw the profile itself with one `Rectangle` per level, in a vertical area created with `Vbk.AddCA(true, ...)`.

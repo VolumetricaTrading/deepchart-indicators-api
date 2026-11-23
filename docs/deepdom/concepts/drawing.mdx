@@ -1,0 +1,163 @@
+---
+title: "Drawing"
+description: "Chart areas, series and annotations, created through Vbk."
+---
+
+An indicator draws through the chart API: it creates an area, series and annotations, and then works with the interfaces of `VolumetricaCore` (`IChartSeries`, `IChartPoint`, `IAnnotation`, `IAnnGroup`, `IAxis`), which are the same as in Deepchart. Their members are listed in [Drawing interfaces](/reference/rendering).
+
+## Chart areas
+
+An indicator whose values are not prices (a volume, a percentage) draws in an area of its own, created in `OnSet`:
+
+```csharp
+ChartAreaRef area;
+
+public override void OnSet(bool setDefault, bool haveToChangeTheme)
+{
+    IndPrms.OnOpenCall = CallHandler.HistRT;
+    if (setDefault)
+        return;
+    area = CreateCA(false, "Delta");            // a horizontal area below the chart, titled "Delta"
+    Vbk.GetAxisY(area).FormatAutoNumber = true;  // 1.5K, 2M
+}
+```
+
+`CreateCA(isVertical, description)` creates the area and keeps its reference in `CA`; its height is `CASize`, which the user can change. `ChartAreaRef.Main` is the price area. `Vbk.GetAxisX(area)` and `Vbk.GetAxisY(area)` give the axes of any area, including the main one, as `IAxis`: set their options after creating the area.
+
+The chart is rebuilt at every load: `OnSet` creates the area every time, after the `setDefault` check.
+
+| `IAxis` option | Meaning |
+|---|---|
+| `FormatAutoNumber` | large numbers are abbreviated |
+| `DecimalPlaceShown` | decimals of the labels |
+| `YSame` | the axis is symmetric around zero |
+| `ViewMinimum`, `ViewMaximum` | range shown |
+| `TopMarginPerc`, `BottomMarginPerc` | empty space above and below the values |
+
+## Series
+
+A series draws one point per bar: a line, a histogram, a marker. It is created in `OnSet`, right after the area:
+
+```csharp
+IChartSeries delta;
+
+delta = Vbk.AddSeries(area, "Delta", SeriesType.Bars, AskColor, 2);
+```
+
+| Parameter of `AddSeries` | Meaning |
+|---|---|
+| `Area` | `ChartAreaRef.Main` or the area of the indicator |
+| `ShortName` | name of the series |
+| `SeriesType` | `Line`, `Bars`, `Area`, markers (`Square`, `Cicle`, `Diamond`, `TriangleUp`, `TriangleDown`, ...) |
+| `LineColor`, `LineWidth`, `LineStyle` | default look. A `null` color uses the one of the chart |
+| `IndYAxis` | index of the Y axis of the area, `0` for the primary one |
+
+Add one point for every bar, in `OnOpen`, hidden until it has a value:
+
+```csharp
+public override void OnOpen(bool isRt)
+{
+    Vbk.AddPointToSeries(delta, Vbk.BookIndex, 0, true);
+}
+```
+
+The point of index `i` belongs to the bar of index `i`. Keep this true: add a point for every bar. Then set the value where you calculate it:
+
+```csharp
+var point = delta.Points[Vbk.TickIndex];
+point.Y[0] = value;
+point.LineColor = value >= 0 ? AskColor : BidColor;   // only when the color changes from point to point
+point.IsHidden = false;
+```
+
+| Property of `IChartPoint` | Meaning |
+|---|---|
+| `Y` | the values. One for most styles |
+| `IsHidden` | the point is not drawn |
+| `BreakPoint` | the line is interrupted at this point |
+| `LineColor`, `BackColor` | color of this point |
+| `Text`, `FontSize`, `ShowLabel` | a label on the point |
+
+## Annotations
+
+An annotation is a shape or a text placed anywhere: a level, a box, a label. Annotations are kept in groups: create a group in `OnLoad`, then create each annotation, set it and add it to the group. From then on it is drawn.
+
+```csharp
+IAnnGroup markers;
+
+public override void OnLoad(bool isFull)
+{
+    markers = Vbk.AddAnnList();
+    markers.Area = ChartAreaRef.Main;
+}
+
+var mark = Vbk.CreateAnnotation(AnnotationType.Circle);
+mark.Area = ChartAreaRef.Main;
+mark.X = Vbk.TickIndex + 1;
+mark.Y = price;
+mark.Width = 8;
+mark.LineColor = color;
+mark.BackColor = color.WithOpacity(120);
+Vbk.AddAnnotation(markers, mark);
+```
+
+Common types: `Line`, `Rectangle`, `Text`, `HorizontalLine`, `VerticalLine`, `Ellipse`, `Circle`, `Diamond`, `Triangle`.
+
+To change an annotation later, set its properties again. To remove it, call `group.RemoveAnnotation(annotation)`.
+
+### Coordinates
+
+By default the coordinates are **absolute**: a bar and a value of the Y axis of the area.
+
+- `Y`, `Y2` are prices in the main area, values of the axis in the area of the indicator.
+- `X`, `X2` are positions on the bars: **the bar of index `i` is at `i + 1`**. A bar is one unit wide, from `i + 0.5` to `i + 1.5`.
+
+Other coordinate types, set with `CoordinateXType` and `CoordinateYType`:
+
+| Type | Meaning |
+|---|---|
+| `Absolute` | bars and values (the default) |
+| `Relative` | a position in the chart area, from `0` to `1`: the annotation stays in place while the chart scrolls |
+| `Pixel` | pixels from the edge of the chart area |
+
+```csharp
+label.CoordinateXType = CoordinateTypeEnum.Relative;
+label.CoordinateYType = CoordinateTypeEnum.Relative;
+label.X = 0.02;
+label.Y = 0.95;
+```
+
+### Which area
+
+Set `Area` on the group and on every annotation: `ChartAreaRef.Main` for the price area, `CA.Value` for the area of the indicator. A group with `PlotForeground = true` is drawn, with everything it contains, over the bars and the other indicators.
+
+### Lines extended to the right
+
+A `HorizontalLine` with `IsExtended` goes from `X` to the right edge of the chart, whatever the user scrolls:
+
+```csharp
+var level = Vbk.CreateAnnotation(AnnotationType.HorizontalLine);
+level.X = 1;
+level.IsExtended = true;
+level.Y = price;
+level.Text = "POC";
+level.ShowLabel = true;
+```
+
+## Tooltip
+
+The chart builds the tooltip of a bar from a line of each indicator. Answer only for your area, and return `null` when there is nothing to say:
+
+```csharp
+public override string OnChartBuildTooltip(int CAIndex, int IndX, double Price)
+{
+    if (!CA.HasValue || CAIndex != CA.Value.Index || IndX >= Vbk.BookBars.Count)
+        return null;
+    var bar = Vbk.BookBars[IndX];
+    return $"Delta {Vbk.FormatVolume(bar.AskVol - bar.BidVol)}";
+}
+```
+
+## Performance
+
+Annotations which change often are cheap: only what changed is redrawn. What costs is their number. When an indicator creates annotations for every trade, remove the old ones, as the [Big Trade Marker](/deepdom/examples/big-trade-marker) example does.

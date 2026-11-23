@@ -1,0 +1,85 @@
+---
+title: "Order book"
+description: "The updates of the book, the initial snapshot and LiquiditySumHelper."
+---
+
+The order book is what Deepdom is about, and an indicator can follow it level by level.
+
+## Updates
+
+With `OnBookCall` set, `OnBook` receives the changes of the book as they are applied to the chart, in groups:
+
+```csharp
+public override void OnBook(DateTime exDt, IEnumerable<Feed.BookInfo> mbpUpdates, IEnumerable<Feed.MboInfo> mboUpdates, bool isRt)
+{
+    foreach (Feed.BookInfo level in mbpUpdates)
+    {
+        // level.PinT: the price, level.isAsk: the side, level.Qty: the quantity now at that price (0: the level is gone)
+    }
+}
+```
+
+| Member of `BookInfo` | Meaning |
+|---|---|
+| `PinT`, `Price` | the price, as integer ticks and as a number |
+| `isAsk` | `true` on the ask side, `false` on the bid side |
+| `Qty` | the quantity at that price **now**. Zero means the level has been removed |
+| `DiffQty` | the change since the previous update of the same price |
+
+`mbpUpdates` is the book by price. `mboUpdates` holds the orders of the same updates, when the data feed gives them; most indicators need only the prices.
+
+Several groups of updates belong to the same bar: `OnBook` is called for each one, `OnBookClose` when the bar is complete. The book is received when the chart shows the order book (the default); an indicator which only needs the trades does not ask for it.
+
+## The initial snapshot
+
+The chart shows the last part of the session, and the first `OnBook` is a change, not the whole book. The book as it was at the first bar of the chart is in `Vbk.FullIniDepth`, a collection of `BookInfo` indexed by price:
+
+```csharp
+bool seeded;
+
+public override void OnBook(DateTime exDt, IEnumerable<Feed.BookInfo> mbpUpdates, IEnumerable<Feed.MboInfo> mboUpdates, bool isRt)
+{
+    if (!seeded)
+    {
+        seeded = true;
+        Apply(Vbk.FullIniDepth.Values);
+    }
+    Apply(mbpUpdates);
+}
+```
+
+It is filled when the bars start: read it from the first `OnBook` on, not in `OnInit` or `OnLoad`.
+
+## LiquiditySumHelper
+
+Most indicators of the book want the quantity resting on the first levels of each side. `LiquiditySumHelper`, in `VolBookAPI`, keeps that sum up to date from the updates:
+
+```csharp
+LiquiditySumHelper book;
+
+public override void OnLoad(bool isFull)
+{
+    book = new LiquiditySumHelper(10, false);   // the first 10 levels of each side
+}
+
+public override void OnBook(DateTime exDt, IEnumerable<Feed.BookInfo> mbpUpdates, IEnumerable<Feed.MboInfo> mboUpdates, bool isRt)
+{
+    if (!seeded) { seeded = true; book.Update(Vbk.FullIniDepth.Values); }
+    book.Update(mbpUpdates);
+    book.Flush();
+    double bidShare = 100.0 * book.BidTotSum / (book.BidTotSum + book.AskTotSum);
+}
+```
+
+| Member | Meaning |
+|---|---|
+| constructor `(levels, needSnapshot)` | levels per side to sum. `needSnapshot` keeps the levels for `GetSnapshot()` |
+| `Update(updates)` | applies a group of updates |
+| `Flush()` | brings the window of levels back to `levels` per side, after the updates |
+| `Reset()` | empties the helper |
+| `BidTotSum`, `AskTotSum` | quantity on the first levels of each side |
+| `BidFreshSum`, `AskFreshSum`, `BidPersSum`, `AskPersSum` | the part of it added since the level entered the window, and the rest |
+| `Peak...` | highest value of each sum since `RefreshPeak()` |
+| `GetSnapshot()` | the levels of the window (`BookLiquiditySnapshot`) |
+
+The [Book Imbalance](/deepdom/examples/book-imbalance) example draws the bid share of the book.

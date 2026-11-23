@@ -14,10 +14,15 @@ Base of the attribute which declares a series. Derive one class per series and s
 | `CurrentStyle`, `AvailableStyle` | default style and the styles the user can choose |
 | `PrimaryColor`, `SecondaryColor`, `ThirdColor`, `FourthColor` | default colors |
 | `LineWidth`, `LineStyle`, `MarkerStyle`, `PointWidth` | default look |
+| `FontSize` | default font size of the texts of the points (`Text` style). `0`: the font size of the chart |
+| `CanSetFontSize` | `false`: the font size of the series is not shown in the settings, and the indicator gives every point its size |
+| `AutoFontSize` | `true` (the default): the texts get smaller when the bars get narrower, down to size 6 |
+| `MaxBarsViewed`, `TextOnlyInside` | defaults of the texts, which the user can change: hidden when more bars than this are visible (`0`: no limit), hidden when wider than their bar |
 | `ShortName`, `NameLabel`, `ValueLabel`, `NameShowBG`, `ValueShowBG` | labels on the axis |
 | `IncludeOnAutoCenter` | the series counts when the chart centers the axis |
 | `Enabled` | initial value of `ChartSeriesDefinition.Enabled` |
-| `OverrideAutoColor` | the indicator colors every point itself |
+| `OverrideAutoColor` | the indicator colors every point itself. The Auto Color setting is not shown |
+| `CanSetColors` | `false`: the colors of the series are not shown in the settings, because the indicator does not use them |
 | `ShowInProp` | `false`: the series is not listed in the settings |
 | `CustomNumOfPoints` | values per point, when the style does not decide it |
 
@@ -46,6 +51,28 @@ Layout and limits of a parameter, namespace `VolumetricaControls`. See [Paramete
 | `EnableTransparent` | a color can be transparent |
 | `SerializeIgnore` | the value is not saved |
 
+## IndicatorConstraintAttribute
+
+On the class of the indicator, namespace `VolSysAPI`: the symbols and the bars it is made for. The publish reads it and saves it with the indicator. A chart which does not respect it does not calculate the indicator, and shows why.
+
+A class has one constraint, for example one of these:
+
+```csharp
+[IndicatorConstraint("ES, NQ")]                                                       // only ES and NQ
+[IndicatorConstraint(ChartResolutionInfo.ParamTypeEnum.Minute)]                       // only minute charts
+[IndicatorConstraint(ChartResolutionInfo.ParamTypeEnum.Minute, 5, calculationOnly: false)] // only 5 minute charts
+[IndicatorConstraint(ChartResolutionInfo.ParamTypeEnum.Minute, 5)]                    // any chart, calculated on 5 minute bars on the server
+```
+
+| Argument | Meaning |
+|---|---|
+| `symbol` | the symbols, by name (`ES`) or by full name (`@ES.CME`), separated by commas. `null`: any symbol |
+| `type`, `value` | the type of the bars, and their size |
+| `value2` | the second value of the bars (the reversal ticks of Renko and Reversal, the box multiplier of Point and Figure). `-1`: the one of the chart |
+| `calculationOnly` | with `type` and `value`. `true` (the default): any chart can show the indicator; the server calculates it on those bars, and each chart places them on its own bars by time. On the desktop it is calculated on the bars of the chart. `false`: only the charts with those bars |
+| `AllowVbpBasedOnMinute` | the volume by price may be built from the minute bars |
+| `MinBarsRequested` | bars of history the server asks for, when they are more than a chart has. Only for the packages of Deepchart: the publish refuses it for the others |
+
 ## ColorRef
 
 A reference to a color. See [Colors](/concepts/colors).
@@ -55,7 +82,29 @@ A reference to a color. See [Colors](/concepts/colors).
 | `ColorRef.FromRgb(r, g, b)`, `ColorRef.FromArgb(a, r, g, b)` | a fixed color |
 | named colors (`ColorRef.Yellow`, ...) | fixed colors |
 | `WithOpacity(alpha)` | the same color with a transparency, 0 to 255 |
+| `WithOpacityScale(percent)` | the opacity multiplied by a percentage: `100` leaves it as it is. `percent` can be a `PlotIntRef` parameter |
+| `WithOpacityWhen(flag, alpha)` | the opacity `alpha` while `flag` is true. `flag` can be a `PlotBoolRef` parameter |
+| `WithEnable(flag)` | not drawn while `flag` is false. `flag` can be a `PlotBoolRef` parameter |
+| `WithFadePercent(percent)` | binds the position of a fade to a `PlotIntRef` parameter, from 0 to 100: the chart calculates the fade with the value of the user. The fade must be made with the value the parameter has here: `VAn.GetFadedColorPercent` does both |
 | `Kind` | where the color comes from: `Literal`, `Parameter`, `Series`, `Theme` |
+
+The order of the `With...` methods is in [Colors](/concepts/colors#changes-bound-to-a-parameter).
+
+## LineWidthRef, LineStyleRef, PlotBoolRef, PlotIntRef
+
+A width, a dash style, a flag or a whole number which is either a value or a parameter of the indicator. See [Parameters resolved by the chart](/concepts/parameters#parameters-resolved-by-the-chart).
+
+| Type | Holds | Converts by itself |
+|---|---|---|
+| `LineWidthRef` | a width in pixels | from and to a number |
+| `LineStyleRef` | a `DashStyle` | from and to a `DashStyle` |
+| `PlotBoolRef` | a `bool` | from a `bool` only |
+| `PlotIntRef` | an `int` | from and to an `int` |
+
+| Member | Meaning |
+|---|---|
+| `Value` | the value. On the server, for a parameter, its default |
+| `IsParameter` | `true` when it comes from a parameter of the indicator |
 
 ## ChartAreaRef
 

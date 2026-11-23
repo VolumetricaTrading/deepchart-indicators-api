@@ -10,7 +10,7 @@ description: "The build fails, or the indicator does not appear."
     The project looks for the two libraries in the folder Deepchart is installed in. Pass your folder:
 
     ```bash
-    dotnet build src/DeepchartIndicators.csproj -p:DeepchartDir="D:\Apps\Deepchart"
+    dotnet build src/Deepchart/DeepchartIndicators.csproj -p:DeepchartDir="D:\Apps\Deepchart"
     ```
 
     or change `DeepchartDir` in the project file. An old version of Deepchart does not have these libraries: update it.
@@ -47,7 +47,7 @@ description: "The build fails, or the indicator does not appear."
     - the attributes of `System.ComponentModel`, `System.ComponentModel.DataAnnotations`, `System.Text.Json.Serialization` and `VolumetricaControls` for the parameters;
     - `Debug`, `Stopwatch` and `Console` while you develop.
 
-    Everything else is rejected: reflection, `dynamic`, files, network, processes, threads, tasks and `async`, `lock`, `unsafe` code and `DllImport`, and references to other libraries.
+    Everything else is rejected: reflection (`typeof` and `GetType()` included), records, `dynamic`, files, network, processes, threads, tasks and `async`, `lock`, `unsafe` code and `DllImport`, and references to other libraries.
   </Accordion>
   <Accordion title="The class has no Register method">
     An indicator is listed only if it has a `public static` method named `Register` returning `IndicatorDescriptionBase`.
@@ -69,9 +69,33 @@ description: "The build fails, or the indicator does not appear."
 - **The annotation is in the wrong place.** With absolute coordinates the bar `i` is at `X = i + 1`, and `Y` is a value of the axis of its area. Set `Area = ChartArea` to draw in the area of the indicator.
 - **The state was not reset.** After a parameter change the indicator is calculated again from `OnLoad`. Fields which keep their old values give wrong results from the second calculation on.
 
+## The indicator stops on the server
+
+The chart shows what the server says:
+
+- **`Indicator not available: it takes too long to start`.** The constructor, the property initializers or `OnSet` took more than 4 seconds.
+- **`Indicator not available: it failed to start`.** One of them threw.
+- **`Indicator stopped: time or stack limit exceeded`.** A call went over its time limit, or a recursion went too deep. See [Time limits on the server](/hybrid/desktop-vs-server#time-limits-on-the-server).
+- **`Indicator calculation failed`.** A call threw. The log of the server has the exception; the chart does not, so reproduce it on the desktop.
+
+## The indicator shows a message instead of drawing
+
+The chart does not respect the [constraint](/reference/attributes-and-types#indicatorconstraintattribute) of the indicator: another symbol, or other bars. The message says which ones the indicator is for.
+
 ## The values are wrong on the last bar
 
 The last bar is still open. `OnClose` is not called for it: update it in `OnEnd`, which is called after the history and after every batch of realtime updates.
+
+## The orders are refused
+
+`InsertOrder` returns `-1` and the `reason` says why. The most common ones:
+
+- **`Automatic trading is not allowed in paper/live accounts`.** An indicator trades only on a backtesting or a simulation account.
+- **`Automatic trading is not available on this phase of chart`.** On a simulation account the orders of the history are refused: run a backtest (**Autotrading > Execute Backtest**) to test on the history, or wait for the realtime.
+- **`Trading account is not available`.** No account is selected on the chart.
+- **`TradingApi` is `null`.** The indicator is calculated on the server, where there is no trading interface.
+
+See [Trading](/concepts/trading) for the whole table.
 
 ## Volume by price is empty
 

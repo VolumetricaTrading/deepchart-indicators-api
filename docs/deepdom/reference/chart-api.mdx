@@ -1,0 +1,76 @@
+---
+title: "Chart API"
+description: "Vbk: data of the chart and creation of what the indicator draws."
+---
+
+`Vbk` is the object an indicator uses to read the chart and to create areas, series and annotations. Its type is `IMethodAPI`, in `VolBookAPI`.
+
+## Bars and trades
+
+| Member | Meaning |
+|---|---|
+| `BookBars` | the bars of the chart (`BookBar`) |
+| `BookIndex` | index of the bar being built with the order book |
+| `TickIndex` | index of the bar the trades are being added to |
+| `MaxBarViewed` | number of bars the chart keeps |
+| `SetCalculateAggrTrades()` | asks for the aggregated trades (`AggrInfo` in `OnTick`). Call it in `OnInit` |
+| `NumCore` | cores used by the parallel pass over the trades before the first bar |
+| `TickList`, `FirstTickIndex` | the trades of the session and the index of the first one of the chart. Advanced: `OnTick` is the way to read the trades |
+
+## Order book
+
+| Member | Meaning |
+|---|---|
+| `FullIniDepth` | the book at the first bar of the chart, indexed by price. Valid from the first `OnBook` on |
+
+## Session
+
+| Member | Meaning |
+|---|---|
+| `DailyProfile` | the volume profile of the session (`ProfileClass`) |
+| `DayOpen`, `DayHigh`, `DayLow`, `DayLast` | prices of the session |
+| `DayOinT`, `DayHinT`, `DayLinT` | the same as integer ticks |
+
+## Symbol
+
+| Member | Meaning |
+|---|---|
+| `SymbolName`, `SymbolDescription` | the symbol |
+| `VolMultiplier` | factor between the integer volumes and the real size (cryptocurrencies) |
+
+## Drawing
+
+| Member | Meaning |
+|---|---|
+| `AddCA(isVertical, size, description, syncroX, syncroY, ...)` | another chart area, for an indicator which needs more than the one of `CreateCA` |
+| `GetAxisX(area)`, `GetAxisY(area)` | the axes of an area (`IAxis`) |
+| `AddSeries(area, shortName, seriesType, lineColor = null, lineWidth = 1, lineStyle = Solid, indYAxis = 0)` | a new series |
+| `AddPointToSeries(series, indexBar, yValue = 0, isHidden = false, lineColor = null)` | adds a point to a series for a bar and returns it |
+| `AddAnnList()` | a new group of annotations |
+| `CreateAnnotation(annotationType)` | a new annotation, drawn once it is added to a group |
+| `AddAnnotation(group, annotation)` | adds an annotation to a group and to the chart |
+
+## Prices and volumes
+
+| Member | Meaning |
+|---|---|
+| `FromPinT(pinT)` | price from integer ticks (`.Price`) |
+| `FromPrice(price)` | integer ticks from a price (`.PinT`) |
+| `GetDoubleTicksDiff(from, to)`, `GetIntTicksDiff(from, to)` | ticks between two prices |
+| `DoubleAddSubTicks(price, ticks)`, `IntAddSubTicks(pinT, ticks)` | a price moved by some ticks |
+| `FormatVolume(value, autoFormat = true, format = null)` | a volume as text (`1.5K`), with the multiplier applied |
+
+## Messages
+
+| Member | Meaning |
+|---|---|
+| `ShowMessage(text, title)` | a message for the user. Realtime only |
+| `PlayAlert(alertName)` | plays an alert sound. Realtime only |
+| `PlayVoice(text)` | speaks a text. Realtime only |
+
+## Theme colors (static)
+
+| Member | Meaning |
+|---|---|
+| `IMethodAPI.GetColorRefForTheme(reference, type, range = null)` | a reference to a color of the theme, for the default of a color parameter |
+| `IMethodAPI.HasThemeColors` | `true` once the application has given its theme |

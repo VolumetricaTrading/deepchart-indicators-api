@@ -1,0 +1,136 @@
+---
+title: "Moving Average Cross Trading"
+description: "An order with stop and targets at every cross of two averages, through the trading interface."
+---
+
+**Source:** `src/Deepchart/Trading/MovingAverageCross.cs` · **Calculated on:** desktop only
+
+A fast and a slow moving average. When they cross on a closed bar, the indicator sends an entry order with its brackets: stop, break-even, trailing, up to two targets. Every option of the order is a parameter.
+
+## What it shows
+
+- `TradingApi`: an entry with brackets, the position, a pending order, the reason of a refusal.
+- Where the orders are accepted: a backtest, or a simulation account in realtime.
+- A trading indicator which gives the same result after every recalculation.
+- Nested parameter classes, each one a group in the settings window.
+
+## Before you run it
+
+<Steps>
+  <Step title="Enable the trading">
+    `Trading > Entry > Enabled` is off by default: the indicator starts as two plain averages. Turn it on and choose the order type, the stop and the targets.
+  </Step>
+  <Step title="Backtest">
+    Right-click the chart: **Autotrading > Execute Backtest**. The chart is loaded again on a backtesting account, the orders of every cross are filled on the bars, and the report opens.
+  </Step>
+  <Step title="Or realtime on a simulation account">
+    Select a SIM account in the trading panel of the chart. From then on every cross of a closed bar sends an order. The crosses of the history are skipped.
+  </Step>
+</Steps>
+
+<Warning>
+  `TradingApi` is `[DesktopOnly]`. A package which contains this indicator is calculated on the desktop of each user, never on the server. The example is in its own folder, `src/Deepchart/Trading`, for the same reason as [Book Imbalance](/examples/book-imbalance).
+</Warning>
+
+## The cross
+
+The averages are two running sums, as in [Simple Moving Average](/examples/simple-moving-average). `OnClose` compares them and keeps the side of the last closed bar:
+
+```csharp
+int side = fast > slow ? 1 : fast < slow ? -1 : 0;
+if (side == 0)
+    return;
+bool crossed = lastSide != 0 && side != lastSide;
+lastSide = side;
+if (crossed)
+    Trade(side, isRt);
+```
+
+The first bar with both averages only sets `lastSide`: there is no cross until a bar on the other side. `OnEnd` updates the points of the open bar but takes no signal from it.
+
+## When to trade
+
+```csharp
+bool isBacktest = VAn.ChartPhase.HasFlag(ChartPhaseEnum.Backtesting);
+if (!isRt && !isBacktest)
+    return;
+```
+
+In a backtest the history is the test: every cross sends an order. On a simulation account the orders of the history would be refused anyway, and so would the ones of every recalculation after a change of a parameter. Skipping them keeps the log clean and makes sure a cross never trades twice. See [Trading](/concepts/trading) for the rules.
+
+## The entry
+
+Before the order, the indicator removes a limit entry of the previous cross still waiting, reads the position, and closes the opposite one when `Close the opposite position` is on:
+
+```csharp
+if (pendingEntryId != -1 && TradingApi.GetOrderInfo(pendingEntryId) != null)
+    TradingApi.RemoveOrder(pendingEntryId, out _);
+pendingEntryId = -1;
+
+int position = Math.Sign(TradingApi.PositionNetQuantity);
+if (position == side && !Entry.AllowMultipleEntries)
+    return;
+if (position == -side && Entry.CloseOpposite)
+    TradingApi.FlatAllPositions();
+```
+
+Then the request. The sign of the quantity is the side; a limit order needs a price, and expires after some bars:
+
+```csharp
+var request = new OrderInsertRequest
+{
+    OrderType = Entry.Type == EntryTypeEnum.Market ? OrderTypeEnum.Market : OrderTypeEnum.Limit,
+    Quantity = Entry.Quantity * side,
+    Price = Entry.Type == EntryTypeEnum.Limit ? VAn.DoubleAddSubTicks(bar.Close, -Entry.LimitTicks * side) : null,
+    BarsExpiration = Entry.Type == EntryTypeEnum.Limit && Entry.ExpirationBars > 0 ? Entry.ExpirationBars : null,
+    Brackets = BuildBrackets()
+};
+long orderId = TradingApi.InsertOrder(request, out string reason);
+if (orderId == -1)
+    VAn.AddToLog($"MA Cross: order refused. {reason}", VolumetricaAPI.LogLevelEnum.Warning, "MA Cross", showToast: isRt);
+else if (request.OrderType == OrderTypeEnum.Limit)
+    pendingEntryId = orderId;
+```
+
+A refused order is written to the log with its reason, as a toast only in realtime: a backtest on the wrong account would otherwise show one per cross.
+
+## The brackets
+
+The stop takes the whole quantity and carries the break-even and trailing options. Each target takes its own part and can move the stop to break-even when it is filled:
+
+```csharp
+brackets.Add(new BracketParam
+{
+    IsTarget = false,
+    Quantity = Entry.Quantity,
+    Ticks = Stop.Ticks,
+    OcoStopBeEnabled = Stop.BreakEvenEnabled,
+    OcoStopBeTriggerTicks = Stop.BreakEvenEnabled ? Stop.BreakEvenTriggerTicks : null,
+    OcoStopBeOffsetTicks = Stop.BreakEvenEnabled ? Stop.BreakEvenOffsetTicks : null,
+    OcoStopTrailEnabled = Stop.TrailingEnabled,
+    OcoStopTrailTriggerTicks = Stop.TrailingEnabled ? Stop.TrailingTriggerTicks : null,
+    OcoStopTrailOffsetTicks = Stop.TrailingEnabled ? Stop.TrailingOffsetTicks : null
+});
+```
+
+| Parameter group | Options |
+|---|---|
+| Entry | quantity, market or limit, ticks better than the close, expiration in bars, close the opposite position, allow multiple entries |
+| Stop | ticks, break-even (trigger and offset), trailing (trigger and offset) |
+| Target 1, Target 2 | ticks, quantity, move the stop to break-even when filled |
+| Time filter | a window in exchange time, which can cross midnight |
+
+Distances are ticks from the fill price. The brackets of one entry are OCO: a target which is filled reduces the stop, the stop which is filled cancels the targets. `OnSet` checks that the targets do not exceed the entry quantity, and `OnLoad` shows the problem in `StatusMessage`.
+
+## Things to notice
+
+- `TradingApi` is `null` on the server. `OnLoad` says so in `StatusMessage` instead of failing.
+- The pending entry is removed by its id with `RemoveOrder`. `CancelAllOrders` would also cancel the brackets of the open position.
+- The time filter reads `bar.exchDt`, the exchange time of the bar, never the clock: the indicator must give the same result for the same bars.
+- Every parameter group is a class with `[VolCustom(PropertyIndex = ...)]` on its properties: the order inside the group is yours.
+
+## Try
+
+- Add a unit for the stop and the targets: fixed ticks, or the range of the bar of the cross plus some ticks.
+- Draw a marker on the bar of every order sent, colored by side.
+- Move the stop yourself with `ModifyBracket` when a condition of your own is met, instead of the break-even option.

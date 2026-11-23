@@ -22,6 +22,10 @@ The initial value of the property is the default of the parameter.
 | `string` | text |
 | an `enum` | list of its values |
 | `ColorRef` | color picker |
+| `LineWidthRef` | number |
+| `LineStyleRef` | list of the dash styles |
+| `PlotBoolRef` | switch |
+| `PlotIntRef` | number |
 | `DateTime`, `TimeSpan` | date and time |
 | `DynamicList` | list filled at run time (alert sounds, for example) |
 | a class with public properties | a group of parameters |
@@ -69,9 +73,57 @@ Always give the property an instance as its initial value.
 - Fields are never parameters: keep the state of the calculation in fields.
 
 <Note>
-  The names of the properties are what the workspace saves. Renaming a property loses the value the user saved for it.
+  The names of the properties are what the workspace saves. Renaming a property loses the value the user saved for it. A property you remove is ignored when a workspace saved before is loaded.
 </Note>
 
 ## Reading the parameters
 
 Read them wherever you need: they are set before `OnSet`. When the user changes one, the chart calls `OnSet` again and recalculates the indicator, so the calculation never has to watch for changes.
+
+## Parameters resolved by the chart
+
+A parameter your code reads changes the calculation: when the user changes it, the indicator is calculated again. A parameter which only changes how something looks does not need that. Declare it with one of these types and assign it as it is:
+
+| Type | Assign it to | Shown as |
+|---|---|---|
+| `ColorRef` | any color, see [Colors](/concepts/colors) | color picker |
+| `LineWidthRef` | `LineWidth`, `LineWidth2` of an annotation, the width of a level | number |
+| `LineStyleRef` | `LineDashStyle`, `LineDashStyle2` of an annotation, the style of a level | list of the dash styles |
+| `PlotBoolRef` | `Visible`, `PlotForeground` of a group, the flag of `WithOpacityWhen` and `WithEnable` of a color | switch |
+| `PlotIntRef` | `MaxCountShown` of a group, the percentage of `WithOpacityScale` and `WithFadePercent` of a color | number |
+
+```csharp
+public LineWidthRef LevelWidth { get; set; } = 2;
+public LineStyleRef LevelStyle { get; set; } = DashStyle.Dash;
+public PlotBoolRef ShowLevels { get; set; } = true;
+public PlotBoolRef ShowAboveBars { get; set; } = false;
+[VolCustom(MinValue = -1, MaxValue = 100)]
+public PlotIntRef LastLevels { get; set; } = -1;
+
+public override void OnLoad()
+{
+    levels = VAn.CreateAnnGroup();
+    IndVars.Ann_List.AddGroup(levels);
+    levels.Visible = ShowLevels;
+    levels.PlotForeground = ShowAboveBars;
+    levels.MaxCountShown = LastLevels;
+}
+
+// ...
+line.LineWidth = LevelWidth;
+line.LineDashStyle = LevelStyle;
+```
+
+What you assign is "the parameter `LevelWidth`", not its value: the chart of each user resolves it with what that user has set. For an indicator calculated on the server, a change of one of these parameters is applied at once, without a new calculation.
+
+Rules:
+
+- **Assign it, do not use it in the calculation.** On the server these parameters always hold their default. `LevelWidth * 2`, `LastLevels - 1` and `ShowLevels.Value` compile, and on the server they give the default. `if (ShowLevels)` does not compile, on purpose.
+- **With a condition**, keep the reference: `levels.Visible = inRange ? ShowLevels : false;`
+- **Give it the meaning and the range of what it is assigned to.** The chart uses the value of the user as it is: `-1` in `MaxCountShown` is no limit, `100` in `WithOpacityScale` leaves the opacity as it is. Set `MinValue` and `MaxValue` to match.
+- **When a flag decides what is calculated**, it is a plain `bool`.
+- Always draw the group. A hidden group is still calculated and sent: that is what makes the switch immediate.
+
+**A parameter can become one of these types and keep its name.** The values the users saved in their workspaces and templates are still read: an `int` that becomes a `PlotIntRef`, a number that becomes a `LineWidthRef`, a `DashStyle` that becomes a `LineStyleRef`, a `bool` that becomes a `PlotBoolRef`.
+
+What a group does with `Visible`, `PlotForeground` and `MaxCountShown` is in [Annotations](/concepts/annotations#showing-hiding-and-layering-a-group). The changes of a color bound to a parameter are in [Colors](/concepts/colors#changes-bound-to-a-parameter).

@@ -3,7 +3,7 @@ title: "Book Imbalance"
 description: "An indicator which is desktop only, and why."
 ---
 
-**Source:** `src/DesktopOnly/BookImbalance.cs` · **Calculated on:** desktop only
+**Source:** `src/Deepchart/DesktopOnly/BookImbalance.cs` · **Calculated on:** desktop only
 
 A label with the share of the visible order book which is on the bid side.
 
@@ -39,6 +39,6 @@ Each update has a price (`PinT`), a side (`isAsk`) and the new quantity at that 
 
 `RebuildDom`, `OnBook` and `OnBookCall` are marked `[DesktopOnly]` in the API: the order book of a user exists only on the desktop. Using them changes nothing on your chart. It changes where a package can be calculated: a package which contains this indicator is calculated on the desktop of each user, never on the server.
 
-That is why this example is in its own folder. To publish the other examples as a server package, leave this one out of the dll.
+That is why this example is in its own folder, like [Moving Average Cross Trading](/examples/moving-average-cross) in `src/Deepchart/Trading`. To publish the other examples as a server package, leave these two out of the dll.
 
 See [Desktop only features](/hybrid/desktop-only) for the full list.

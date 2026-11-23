@@ -1,0 +1,62 @@
+---
+title: "Quickstart"
+description: "Build the example indicators and load them on a Deepdom chart."
+---
+
+## Before you start
+
+- Deepdom installed. The project references two libraries from its folder: `VolBookAPI.dll` and `VolumetricaCore.dll`.
+- The [.NET 10 SDK](https://dotnet.microsoft.com/download).
+- Your developer id (see [Developer id](/hybrid/developer-id)).
+- Any editor: Visual Studio, Rider or Visual Studio Code.
+
+## Build and load
+
+<Steps>
+  <Step title="Get the project">
+    The project lives on GitHub at [VolumetricaTrading/deepchart-indicators-api](https://github.com/VolumetricaTrading/deepchart-indicators-api), next to the one for Deepchart. Clone it:
+
+    ```bash
+    git clone https://github.com/VolumetricaTrading/deepchart-indicators-api.git
+    ```
+
+    or download it as a zip from the same page. The Deepdom project is in `src/Deepdom`, the solution `Indicators.sln` holds both projects.
+
+    This is also the template to start from: keep the project, delete the examples you do not need, and see [Your own library](/deepdom/project-setup#your-own-library) for the two names to change.
+  </Step>
+  <Step title="Set your developer id">
+    Open `src/Deepdom/DeepdomIndicators.csproj` and replace `YOUR-DEV-ID`:
+
+    ```xml
+    <DeepdomDevId Condition="'$(DeepdomDevId)' == ''">YOUR-DEV-ID</DeepdomDevId>
+    ```
+
+    Deepdom loads a local dll only when it carries the id of the logged user.
+  </Step>
+  <Step title="Build">
+    ```bash
+    dotnet build src/Deepdom/DeepdomIndicators.csproj
+    ```
+
+    The dll is written to `Documents\Deepdom\Indicators`, the folder Deepdom loads local indicators from.
+
+    If Deepdom is not installed in `C:\Program Files\Volumetrica Trading\Deepdom\`, pass its folder:
+
+    ```bash
+    dotnet build src/Deepdom/DeepdomIndicators.csproj -p:DeepdomDir="D:\Apps\Deepdom"
+    ```
+  </Step>
+  <Step title="Add an indicator to a chart">
+    Open a chart in Deepdom and open the indicator list. The examples are under **Personal**, with names starting with `Example -`.
+  </Step>
+</Steps>
+
+<Note>
+  Deepdom watches the indicators folder: after a new build, the dll is loaded again without restarting the app, and the charts which show its indicators pick up the new version at their next load. Deleting the file is not noticed until the next start.
+</Note>
+
+## Write your first indicator
+
+Copy `src/Deepdom/Basics/BarDelta.cs`, rename the class and change the name returned by `Register()`. Each class in the dll with a `Register()` method is one indicator in the list.
+
+Then read [Life cycle](/deepdom/concepts/lifecycle) to learn when each method is called.

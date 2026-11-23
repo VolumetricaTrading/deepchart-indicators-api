@@ -1,0 +1,63 @@
+---
+title: "Book Imbalance"
+description: "The order book: the initial snapshot, the updates and LiquiditySumHelper."
+---
+
+**Source:** `src/Deepdom/Book/BookImbalance.cs`
+
+The share of the order book which is on the bid side, over the first levels of each side: a line in an area of its own and a label on the chart.
+
+## What it shows
+
+- `OnBook` and the updates of the book.
+- `FullIniDepth`, the book at the first bar of the chart.
+- `LiquiditySumHelper`.
+- A label with relative coordinates, drawn on the foreground.
+
+## How it works
+
+The helper sums the first `Levels` levels of each side. It is created in `OnLoad`, and the first `OnBook` applies the initial snapshot before the updates:
+
+```csharp
+public override void OnLoad(bool isFull)
+{
+    book = new LiquiditySumHelper(Levels, false);
+    seeded = false;
+    // ...
+}
+
+public override void OnBook(DateTime exDt, IEnumerable<Feed.BookInfo> mbpUpdates, IEnumerable<Feed.MboInfo> mboUpdates, bool isRt)
+{
+    if (!seeded)
+    {
+        seeded = true;
+        book.Update(Vbk.FullIniDepth.Values);
+    }
+    book.Update(mbpUpdates);
+    book.Flush();
+    Draw();
+}
+```
+
+`Draw` writes the point of the current bar and the label:
+
+```csharp
+long bid = book.BidTotSum, ask = book.AskTotSum;
+double share = 100.0 * bid / (bid + ask);
+var point = bidShare.Points[Vbk.BookIndex];
+point.Y[0] = share;
+point.IsHidden = false;
+label.Text = $"Bid {Vbk.FormatVolume(bid)}   Ask {Vbk.FormatVolume(ask)}   ({share:0}% bid)";
+label.ForeColor = share >= 50 ? BidColor : AskColor;
+```
+
+## Things to notice
+
+- The point is written with `BookIndex`: the book belongs to the bar being built, see [Two indices](/deepdom/concepts/lifecycle#two-indices).
+- The label uses relative coordinates (`0.02`, `0.95`) and a group with `PlotForeground = true`: it stays at the top left, over the bars.
+- `FullIniDepth` is read from the first `OnBook`, not from `OnLoad`: it is empty before the bars start.
+
+## Try
+
+- Draw the two sums as two series instead of the share.
+- Add a parameter to count the levels within a number of ticks from the best price instead of a fixed number of levels.

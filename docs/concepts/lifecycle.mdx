@@ -12,7 +12,7 @@ An indicator does not run by itself. The chart calls its methods while it loads 
     Called before every load of the chart, and again when the user changes a parameter. Here the indicator says which calls it wants, enables or disables its series and sets its description. The parameters already have their values.
   </Step>
   <Step title="OnPreInit, OnInit">
-    Called once per load, before the series exist. The axes (`AxisX`, `AxisY`) are available from here: set their options in `OnInit`.
+    Called once per load, before the series exist. The axes (`AxisX`, `AxisY`) are available from here: set their options in `OnInit`. It is also the only place to ask for [other resolutions](/concepts/resolutions).
   </Step>
   <Step title="OnLoad">
     Called when the series have been created and before the first bar. Reset here everything a previous calculation left: counters, lists, annotations you keep a reference to.
@@ -28,7 +28,9 @@ An indicator does not run by itself. The chart calls its methods while it loads 
   </Step>
 </Steps>
 
-Inside these methods `VAn.BarIndex` is the index of the bar being calculated, and `VAn.BarVars` holds the bars up to it.
+Inside these methods `VAn.BarIndex` is the index of the bar being calculated. Read `VAn.BarVars` only up to it: on the server, during the history, the following bars can already be there (see [Market data](/concepts/market-data#bars)).
+
+On the server every call has a time limit, see [Desktop or server](/hybrid/desktop-vs-server#time-limits-on-the-server).
 
 ## Choosing the calls
 

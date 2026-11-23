@@ -1,0 +1,122 @@
+---
+title: "Life cycle"
+description: "The methods the chart calls on an indicator, and in which order."
+---
+
+An indicator does not run by itself. The chart calls its methods while it loads the session and while new data arrives. You override the ones you need.
+
+## Order of the calls
+
+<Steps>
+  <Step title="OnSet">
+    Called when the indicator is created from the list, with `setDefault` set to `true`, and again before every load of the chart. Here the indicator says which calls it wants and creates its chart area and its series. The parameters already have their values.
+
+    When `setDefault` is `true` the chart is not there yet and `Vbk` is `null`: set the calls and return.
+  </Step>
+  <Step title="OnInit">
+    Called once per load, before the bars. The place to ask for the [aggregated trades](/deepdom/concepts/bars-and-trades#aggregated-trades).
+  </Step>
+  <Step title="OnLoad">
+    Called before the first bar. Reset here everything a previous calculation left: counters, lists, annotations you keep a reference to. Create here the groups of your annotations.
+  </Step>
+  <Step title="History">
+    For every bar of the chart, in order: `OnOpen` when the bar starts, `OnBook` for every group of updates of the order book, `OnBookClose` when the book of the bar is complete. The trades follow: `OnTick` for every trade, `OnTickClose` when the trades of a bar are complete. When everything is done, `OnEnd(false)` is called once.
+  </Step>
+  <Step title="Realtime">
+    The same calls, with `isRt` set to `true`, as the updates arrive. After each batch of updates, `OnEnd(true)`: the place to update what depends on the bar still open.
+  </Step>
+</Steps>
+
+The chart is loaded again from `OnSet` when it is opened, when the user changes a setting or a parameter, and as the session goes on, because the chart keeps a window of the most recent bars. Nothing you kept in fields is cleared for you: `OnLoad` must bring the indicator back to its initial state, and `OnSet` creates the area and the series every time.
+
+## Two indices
+
+The book and the trades of a bar do not arrive at the same moment, so the chart keeps two indices:
+
+| Member of `Vbk` | Meaning |
+|---|---|
+| `BookIndex` | the bar being built with the order book: the one `OnOpen`, `OnBook` and `OnBookClose` refer to |
+| `TickIndex` | the bar the trades are being added to: the one `OnTick` and `OnTickClose` refer to |
+
+Add the points of a series in `OnOpen` with `BookIndex`. Read the volumes of a bar (`AskVol`, `BidVol`) in `OnTickClose` with `TickIndex`: they are complete there, not in `OnBookClose`. In `OnEnd` the bar still open is `BookBars[TickIndex]`.
+
+## Choosing the calls
+
+A call is made only when the indicator asks for it in `OnSet`, with one property of `IndPrms` per method:
+
+```csharp
+public override void OnSet(bool setDefault, bool haveToChangeTheme)
+{
+    IndPrms.OnOpenCall = CallHandler.HistRT;       // history and realtime
+    IndPrms.OnCloseTickCall = CallHandler.HistRT;
+    IndPrms.OnTickCall = CallHandler.RT;           // realtime only
+    IndPrms.OnEndCall = CallHandler.HistRT;
+}
+```
+
+| Property | Method | Called |
+|---|---|---|
+| `OnOpenCall` | `OnOpen(isRt)` | a new bar |
+| `OnBookCall` | `OnBook(exDt, mbpUpdates, mboUpdates, isRt)` | a group of updates of the order book |
+| `OnCloseCall` | `OnBookClose(isRt)` | the book of a bar is complete |
+| `OnTickCall` | `OnTick(tick, isRt, isNewDay, aggrInfo)` | a trade. With `Full`, also `OnIniParallelTick` (see below) |
+| `OnCloseTickCall` | `OnTickClose(isRt)` | the trades of a bar are complete |
+| `OnEndCall` | `OnEnd(isRt)` | after the history, and after every batch of realtime updates |
+| `OnResizeCall` | `OnResizeAxis(isFinal)` | the axes have been resized |
+
+| Value | Meaning |
+|---|---|
+| `Off` | never called (the default) |
+| `RT` | called only in realtime |
+| `HistRT` | called for the history and in realtime |
+| `Full` | `OnTickCall` only: `HistRT`, plus the trades before the first bar in `OnIniParallelTick` |
+
+`OnEnd` and `OnResizeAxis` are called in both phases with any value other than `Off`. `OnInit` and `OnLoad` are called only when the indicator asks for at least one of the other calls.
+
+Ask only for what you use: an indicator which asks for `OnTick` or `OnBook` on the history makes every load slower.
+
+## The trades before the first bar
+
+The chart shows the last part of the session. An indicator which needs the whole session, a cumulative delta for example, asks for `OnTickCall = CallHandler.Full`: before the bars it receives every trade of the session before the first bar in `OnIniParallelTick`.
+
+These trades are split between the cores of the computer and given **in parallel**: each core gets its own range of trades, in order, and `indCore` says which core is calling. The rule is simple:
+
+- keep one accumulator per core, in an array of `Vbk.NumCore` elements created in `OnLoad`;
+- never touch shared state from `OnIniParallelTick`;
+- merge the accumulators, in the order of the cores, before using the result: at the first `OnTick` or `OnEnd`.
+
+```csharp
+long[] coreDelta;
+bool merged;
+
+public override void OnLoad(bool isFull)
+{
+    coreDelta = new long[Vbk.NumCore];
+    merged = false;
+}
+
+public override void OnIniParallelTick(int indCore, int tickBaseIndex, TickByTick newTick, AggrInfo aggrInfo)
+{
+    coreDelta[indCore] += Side(newTick);
+}
+```
+
+The [Session CVD](/deepdom/examples/session-cvd) example shows the whole pattern.
+
+## Which method for what
+
+| You want to | Use |
+|---|---|
+| add a point for a new bar | `OnOpen` |
+| write the final value of a bar from its volumes | `OnTickClose` |
+| update the bar still open | `OnEnd` |
+| react to every trade | `OnTick` |
+| follow the order book | `OnBook` |
+| reset the state | `OnLoad` |
+
+## Other calls
+
+| Method | Called |
+|---|---|
+| `OnSaveProperty()` | just before the settings of the indicator are saved with the workspace or a template |
+| `OnChartBuildTooltip(CAIndex, IndX, Price)` | when the chart builds the tooltip of a bar: return a line of text for your area, or `null` |

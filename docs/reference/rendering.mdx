@@ -3,7 +3,7 @@ title: "Drawing interfaces"
 description: "Series, points, annotations, groups and axes."
 ---
 
-What an indicator draws on, in `VolumetricaCore.dll`, namespace `VolumetricaAPI.Chart`. Members marked **desktop** are `[DesktopOnly]`.
+What an indicator draws on, in `VolumetricaCore.dll`, namespace `VolumetricaAPI.Chart`. The interfaces are the same for Deepchart and for Deepdom. Members marked **desktop** are `[DesktopOnly]` in Deepchart, where an indicator can also be calculated on the server; in Deepdom every member is available.
 
 ## IChartSeries
 
@@ -25,7 +25,8 @@ A series as the indicator sees it: its points. Style and colors are settings of 
 | `IsHidden` | not drawn |
 | `BreakPoint` | interrupts the line |
 | `LineColor`, `BackColor` | colors of this point |
-| `Text`, `FontSize`, `ShowLabel`, `LabelSpan` | label of the point |
+| `Text`, `FontSize`, `ShowLabel`, `LabelSpan` | label of the point. `FontSize` 0: the font size of the series, then the one of the chart. With `AutoFontSize` of the series (the default) that size is the maximum, reduced when the bars get narrower |
+| `Tooltip` | text shown when the mouse is over the text of the point (`Text` style) |
 | `alignMarker` | where a marker is placed relative to the value |
 | `PointWidth`, `ShowOnlyBorder` | look of a bar |
 | `YMagnet` | with a marker aligned above or below (`alignMarker`): the marker is attached to the value |
@@ -38,13 +39,13 @@ A series as the indicator sees it: its points. Style and colors are settings of 
 | Member | Meaning |
 |---|---|
 | `AnnotationType` | the shape |
-| `X`, `Y`, `X2`, `Y2`, `X3`, `Y3` | coordinates. With absolute coordinates the bar `i` is at `X = i + 1` |
+| `X`, `Y`, `X2`, `Y2`, `X3`, `Y3` | coordinates. With absolute coordinates the bar `i` is at `X = i + 1`. On a text with `TextOnlyInside`, `X2` and `X3` are the space it must fit in |
 | `CoordinateXType`, `CoordinateYType` | `Absolute`, `Relative`, `Pixel`, `Session` |
 | `Width`, `Height` | size, for the shapes which have one |
 | `XOffset` | shift on X |
 | `Area` | chart area: `ChartAreaRef.Main` or the `ChartArea` of the indicator |
 | `Visible` | drawn or not |
-| `PlotForeground` | drawn over the bars |
+| `PlotForeground` | drawn over the bars. Used when its group has no `PlotForeground` of its own |
 | `IsExtended` | a line continues to the edge of the chart |
 | `MaxBarsViewed` | not drawn when more than this number of bars are visible |
 
@@ -52,10 +53,11 @@ A series as the indicator sees it: its points. Style and colors are settings of 
 
 | Member | Meaning |
 |---|---|
-| `LineColor`, `LineWidth`, `LineDashStyle` | border or line |
+| `LineColor`, `LineWidth`, `LineDashStyle` | border or line. Width and style are a value or a parameter (`LineWidthRef`, `LineStyleRef`) |
 | `BackColor`, `BackGradient` | fill |
 | `LineColor2`, `LineWidth2`, `LineDashStyle2`, `BackColor2`, `BackGradient2` | second line and fill, for the shapes which have two |
 | `Margin`, `PixelMargin`, `MinPxForMargin` | space outside the shape, in pixels |
+| `PixelMarginXMult` | multiplier of `PixelMargin` and `MinPxForMargin` on the left and right sides only (1, the default: the same margin on every side). Rectangles side by side stay visibly apart |
 | `Padding`, `PixelPadding` | space inside the shape, in pixels |
 
 **Text**
@@ -66,16 +68,18 @@ A series as the indicator sees it: its points. Style and colors are settings of 
 | `TextAlign`, `LabelAlign` | alignment |
 | `Tooltip` | text shown when the mouse is over the annotation |
 | `ShowLabel`, `ShowLblBackground`, `ShowPrice` | label and price of a level |
-| `TextOnAxis`, `TextOnlyInside`, `needToShowAllText`, `CheckStringWidthInside` | where the text may be drawn |
+| `TextOnAxis`, `TextOnlyInside`, `needToShowAllText`, `CheckStringWidthInside` | where the text may be drawn. `TextOnlyInside` on a `Text`, a `MultiTextLine` or a text of a `MultiTextStack`: only between `X2` and `X3` (a side at `0` has no limit); without them, a `Text` only in the width of a bar. See [A text that must fit](/concepts/annotations#a-text-that-must-fit-in-a-space) |
 | `TextWidth`, `TextHeight` | measured size of the text. **desktop** |
 
 **Levels and children**
 
 | Member | Meaning |
 |---|---|
-| `AddAnnParam(coeff, color, lineWidth, style)`, `ClearAnnParam()` | levels of a retracement or projection |
+| `AddAnnParam(coeff, color, lineWidth, style)`, `ClearAnnParam()` | levels of a retracement or projection. Width and style are a value or a parameter |
 | `Ann1ToPlot`, `Ann2ToPlot`, `AnnParamToPlot`, `ShowPercent`, `ShowDifference` | what a multi part annotation shows |
-| `AddToList(annotation)`, `InsertToList(index, annotation)`, `ClearList()` | child annotations, for a text of several lines |
+| `AddToList(annotation)`, `InsertToList(index, annotation)`, `ClearList()` | child annotations: the lines of a `MultiTextLine`, the labels of a `MultiTextStack` (see [Labels that do not overlap](/concepts/annotations#labels-that-do-not-overlap-multitextstack)) |
+| `RemoveFromList(annotation)` | removes one child, the others keep their order; `false` if it is not in the list. The child can be added again |
+| `ListCount`, `this[index]` | number of the child annotations, and the child of a position, in the order they were added. A child can be changed as any annotation |
 
 ## IAnnGroup
 
@@ -85,11 +89,26 @@ A series as the indicator sees it: its points. Style and colors are settings of 
 | `AddGroup(group)` | adds a group inside this one |
 | `RemoveAnnotation(annotation)` | removes an annotation |
 | `Clear()` | removes everything |
-| `Visible` | drawn or not |
+| `Visible` | drawn or not, with everything it contains. A value or a parameter (`PlotBoolRef`) |
 | `Area` | chart area the group is bound to |
-| `PlotForeground` | drawn over the bars |
-| `MaxBarsViewed`, `MaxCountShown` | limits for drawing |
+| `PlotForeground` | `null` (the default): every annotation follows its own `PlotForeground`. `true` or `false`: everything in the group is drawn over or under the bars. A value or a parameter (`PlotBoolRef?`) |
+| `MaxBarsViewed` | not drawn when more than this number of bars are visible |
+| `MaxCountShown` | `-1` (the default): no limit. Otherwise only the last item and the `MaxCountShown` before it are drawn. A value or a parameter (`PlotIntRef`) |
+| `Reverse` | the items are drawn from the last to the first |
+| `PlotOnlyIfSessionVisible` | on the Profile chart: drawn only while its session is visible |
 | `AnnPerBar`, `shiftIndex`, `OutBars` | for groups with a fixed number of annotations per bar: lets the chart find the visible ones without scanning the group |
+
+## ISessionAnnGroup
+
+The group of a session of the Profile chart, created by `VAn.NewSessionAnnotationGroup`. **desktop**. See [The Profile chart](/concepts/annotations#the-profile-chart).
+
+| Member | Meaning |
+|---|---|
+| `AnnGroup` | the annotations of the group: a group created with `VAn.CreateAnnGroup()` |
+| `Width` | width of the group, in units of the X of its annotations |
+| `Visible` | drawn or not. `false` for a new group, which takes no space while it is not visible |
+| `Id` | code of the group: `Id \| m` is the X of the column `m` in the `Session` coordinates |
+| `ReferenceExchDateTime` | the exchange time given when the group was created: it orders the groups of a session |
 
 ## IAxis
 

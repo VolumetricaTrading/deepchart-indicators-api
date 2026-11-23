@@ -1,0 +1,71 @@
+---
+title: "Session CVD"
+description: "The trades of the session and the parallel pass."
+---
+
+**Source:** `src/Deepdom/Basics/SessionCvd.cs`
+
+The cumulative delta of the session: every trade at the ask adds its size, every trade at the bid subtracts it.
+
+## What it shows
+
+- `OnTick` for every trade.
+- `CallHandler.Full` and `OnIniParallelTick`: the trades before the first bar of the chart.
+- One accumulator per core and the merge.
+
+## The trades before the first bar
+
+The chart shows the last part of the session, but a cumulative delta starts at the open. With `OnTickCall = CallHandler.Full` the indicator receives the earlier trades in `OnIniParallelTick`, split between the cores of the computer and given in parallel. Each core adds to its own total:
+
+```csharp
+long[] coreDelta;
+
+public override void OnLoad(bool isFull)
+{
+    delta = 0;
+    merged = false;
+    coreDelta = new long[Vbk.NumCore];
+}
+
+public override void OnIniParallelTick(int indCore, int tickBaseIndex, Feed.TickByTick newTick, AggrInfo aggrInfo)
+{
+    coreDelta[indCore] += Side(newTick);
+}
+```
+
+The totals are merged once, in the order of the cores, before the first trade of the chart is used:
+
+```csharp
+private void Merge()
+{
+    if (merged)
+        return;
+    merged = true;
+    foreach (long coreTotal in coreDelta)
+        delta += coreTotal;
+}
+```
+
+`Merge()` is the first line of `OnTick`, `OnTickClose` and `OnEnd`: whichever comes first does the merge.
+
+## The side of a trade
+
+```csharp
+private static long Side(Feed.TickByTick tick)
+{
+    if (tick.price >= tick.ask) return tick.Vol;
+    if (tick.price <= tick.bid) return -tick.Vol;
+    return 0;
+}
+```
+
+## Things to notice
+
+- Nothing is shared between the cores while the parallel pass runs: only the array, with one cell per core.
+- `OnLoad` resets the totals and the `merged` flag: the chart is loaded again as the session goes on, and the pass runs again.
+- The points follow the same pattern as [Bar Delta](/deepdom/examples/bar-delta): added in `OnOpen`, written in `OnTickClose`, updated in `OnEnd`.
+
+## Try
+
+- Add a parameter to ignore the trades below a size.
+- Draw the delta of the bid side and of the ask side as two lines.

@@ -14,10 +14,18 @@ description: "Build the example indicators and load them on a chart."
 
 <Steps>
   <Step title="Get the project">
-    Clone or download this repository. The project is in `src`, the solution is `DeepchartIndicators.sln`.
+    The project lives on GitHub at [VolumetricaTrading/deepchart-indicators-api](https://github.com/VolumetricaTrading/deepchart-indicators-api). Clone it:
+
+    ```bash
+    git clone https://github.com/VolumetricaTrading/deepchart-indicators-api.git
+    ```
+
+    or download it as a zip from the same page. The Deepchart project is in `src/Deepchart`, the solution `Indicators.sln` holds it together with the one for Deepdom.
+
+    This is also the template to start from: keep the project, delete the examples you do not need, and see [Your own library](/project-setup#your-own-library) for the two names to change.
   </Step>
   <Step title="Set your developer id">
-    Open `src/DeepchartIndicators.csproj` and replace `YOUR-DEV-ID`:
+    Open `src/Deepchart/DeepchartIndicators.csproj` and replace `YOUR-DEV-ID`:
 
     ```xml
     <DeepchartDevId Condition="'$(DeepchartDevId)' == ''">YOUR-DEV-ID</DeepchartDevId>
@@ -27,7 +35,7 @@ description: "Build the example indicators and load them on a chart."
   </Step>
   <Step title="Build">
     ```bash
-    dotnet build src/DeepchartIndicators.csproj
+    dotnet build src/Deepchart/DeepchartIndicators.csproj
     ```
 
     The dll is written to `Documents\Deepchart\Indicators`, the folder Deepchart loads local indicators from.
@@ -35,7 +43,7 @@ description: "Build the example indicators and load them on a chart."
     If Deepchart is not installed in `C:\Program Files\Volumetrica Trading\Deepchart\`, pass its folder:
 
     ```bash
-    dotnet build src/DeepchartIndicators.csproj -p:DeepchartDir="D:\Apps\Deepchart"
+    dotnet build src/Deepchart/DeepchartIndicators.csproj -p:DeepchartDir="D:\Apps\Deepchart"
     ```
   </Step>
   <Step title="Add an indicator to a chart">
@@ -49,6 +57,6 @@ description: "Build the example indicators and load them on a chart."
 
 ## Write your first indicator
 
-Copy `src/Basics/SimpleMovingAverage.cs`, rename the class and change the name returned by `Register()`. Each class in the dll with a `Register()` method is one indicator in the list.
+Copy `src/Deepchart/Basics/SimpleMovingAverage.cs`, rename the class and change the name returned by `Register()`. Each class in the dll with a `Register()` method is one indicator in the list.
 
 Then read [Life cycle](/concepts/lifecycle) to learn when each method is called.

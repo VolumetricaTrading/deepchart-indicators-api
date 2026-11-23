@@ -19,6 +19,14 @@ A static method the indicator must declare. Deepchart finds the indicators of a 
 | `Description` | short text shown with the name |
 | `HelpLink` | address of a help page |
 | `Tags` | words used by the search of the list |
+| `SupportChartArea` | the areas it can be placed in: `ChartAreaSupportEnum.Horizontal` (the default), `Vertical`, or both |
+| `DefaultPlacement` | where it is placed when it is added: `IndicatorPlacementEnum.Overlay` (the default, over the price), `SubWindow` (a new area below the last one), `VerticalArea`. An indicator for the vertical areas only sets `VerticalArea` here too |
+| `SupportSecondaryAxis` | it can use the secondary axis (`true` by default) |
+| `AxisYHiddenText` | the labels of its Y axis are not drawn |
+| `ProfileChartAllowed` | it can be added to the Profile chart, see [The Profile chart](/concepts/annotations#the-profile-chart) (`false` by default) |
+| `CategoryId` | category in the list. Only for the indicators of Deepchart: ignored for the others |
+
+These values do not depend on the parameters: the list reads them without creating the indicator. The symbols and the bars the indicator is made for are an attribute of its class, see [IndicatorConstraintAttribute](/reference/attributes-and-types#indicatorconstraintattribute).
 
 ## What the indicator works with
 
@@ -30,7 +38,7 @@ A static method the indicator must declare. Deepchart finds the indicators of a 
 | `AxisX`, `AxisY` | `IAxis` | axes of the area of the indicator, available from `OnInit` |
 | `ChartArea` | `ChartAreaRef` | the area the user placed the indicator in |
 | `IndPrms` | `BaseIndicatorPrms` | settings chosen by the user, series settings included |
-| `TradingApi` | `ITradingAPI` | orders and positions. **desktop** |
+| `TradingApi` | `ITradingAPI` | orders and positions, see [Trading](/concepts/trading). **desktop** |
 
 ## Methods to override
 
@@ -47,6 +55,7 @@ A static method the indicator must declare. Deepchart finds the indicators of a 
 | `OnSaveProperty()` | the settings are about to be saved. Never called on the server |
 | `OnBook(BookUpdate updates)` | order book changes. **desktop** |
 | `OnResizeAxis(bool isFinal)` | the axes are being resized. **desktop** |
+| `OnContextMenu(ChartAreaRef? area, int? barIndex)` | the user right-clicks the chart: add the items of the indicator, see [Context menu](/reference/chart-api#context-menu). **desktop** |
 
 See [Life cycle](/concepts/lifecycle) for the order.
 

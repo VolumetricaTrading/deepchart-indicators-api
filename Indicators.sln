@@ -1,11 +1,15 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deepchart", "Deepchart", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepchartIndicators", "src\DeepchartIndicators.csproj", "{B4B8B66B-BE94-4D58-A5DC-CA11329BF6EF}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deepdom", "Deepdom", "{5D2F8A1C-6B3E-4F7A-9C0D-2E4B6A8C1F35}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepchartIndicators", "src\Deepchart\DeepchartIndicators.csproj", "{B4B8B66B-BE94-4D58-A5DC-CA11329BF6EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepdomIndicators", "src\Deepdom\DeepdomIndicators.csproj", "{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,11 +33,24 @@ Global
 		{B4B8B66B-BE94-4D58-A5DC-CA11329BF6EF}.Release|x64.Build.0 = Release|Any CPU
 		{B4B8B66B-BE94-4D58-A5DC-CA11329BF6EF}.Release|x86.ActiveCfg = Release|Any CPU
 		{B4B8B66B-BE94-4D58-A5DC-CA11329BF6EF}.Release|x86.Build.0 = Release|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Debug|x64.Build.0 = Debug|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Debug|x86.Build.0 = Debug|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Release|x64.ActiveCfg = Release|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Release|x64.Build.0 = Release|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Release|x86.ActiveCfg = Release|Any CPU
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B4B8B66B-BE94-4D58-A5DC-CA11329BF6EF} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{3A7E9C21-4D5B-4E8F-A1C6-7B2D9E0F4A58} = {5D2F8A1C-6B3E-4F7A-9C0D-2E4B6A8C1F35}
 	EndGlobalSection
 EndGlobal

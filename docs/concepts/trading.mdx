@@ -1,0 +1,125 @@
+---
+title: "Trading"
+description: "Orders and positions from an indicator: TradingApi, in a backtest or on a simulation account."
+---
+
+An indicator can send orders through `TradingApi`, a field of `Indicator` of type `ITradingAPI` (namespace `VolSysAPI.Trading`). It sends them to the account selected on the chart, for the symbol of the chart, and the orders are shown and filled like the ones of the trading panel.
+
+```csharp
+long orderId = TradingApi.InsertOrder(new OrderInsertRequest
+{
+    OrderType = OrderTypeEnum.Market,
+    Quantity = 1        // positive: buy. Negative: sell
+}, out string reason);
+if (orderId == -1)
+    VAn.AddToLog($"Order refused: {reason}", VolumetricaAPI.LogLevelEnum.Warning);
+```
+
+`TradingApi` is `[DesktopOnly]`: on the server it is `null`, and a package which uses it is calculated on the desktop, see [Desktop only features](/hybrid/desktop-only). Check it for `null` before using it.
+
+## Where the orders are accepted
+
+Automatic trading is meant to test a strategy, not to trade a real account. Every request is checked against the account of the chart and the phase of the calculation:
+
+| Account of the chart | Phase | Result |
+|---|---|---|
+| Backtesting | the history, with the `Backtesting` flag | accepted, filled on the bars |
+| Simulation (SIM) | realtime | accepted |
+| Simulation (SIM) | the history, or the first batch of realtime updates | refused: `Automatic trading is not available on this phase of chart` |
+| Paper, live | any | refused: `Automatic trading is not allowed in paper/live accounts` |
+| none | any | refused: `Trading account is not available` |
+
+A refused request returns `-1` (or `false`) and the reason. Other reasons are a chart without a symbol (`Trading symbol not found`), a chart still loading (`Chart is not initialized yet`), a limit or stop order without a price, a quantity of zero, and a bracket without quantity or distance.
+
+## Backtesting
+
+A backtest is the history of the chart calculated again on a backtesting account: the orders sent during the calculation are filled on the bars, and the result is a report.
+
+<Steps>
+  <Step title="Prepare the indicator">
+    Add it to the chart and enable its trading parameters. Nothing happens yet: the orders of the history are refused on the account of the chart.
+  </Step>
+  <Step title="Execute Backtest">
+    Right-click the chart and choose **Autotrading > Execute Backtest**. Deepchart creates a backtesting account, switches trading and the historical fills on, and loads the chart again. During this load `VAn.ChartPhase` has the `Backtesting` flag, `OnClose(isRt: false)` is called for every bar, and every order is accepted and filled.
+  </Step>
+  <Step title="Read the report">
+    When the history is done the performance report opens. **Autotrading > Show Report** opens it again, **Save Report** writes it to a file, **Reset Backtest** drops the account and gives the trading panel back.
+  </Step>
+</Steps>
+
+In the indicator, the backtest is recognised from the phase:
+
+```csharp
+bool isBacktest = VAn.ChartPhase.HasFlag(ChartPhaseEnum.Backtesting);
+```
+
+<Note>
+  A change of a parameter calculates the indicator again from the first bar. On the chart of a backtest the orders of this recalculation are accepted only while the account is still the backtesting one: run **Execute Backtest** again to be sure of what the report contains.
+</Note>
+
+## Simulation in realtime
+
+Select a simulation account in the trading panel of the chart. The orders sent in realtime (`isRt` is `true`) are accepted; the ones of the history are refused. Right after the load, while the first batch of realtime updates is applied, the phase still has `RealtimeFlushing` and an order is refused too: the indicator sees the reason in the log and the next signal goes through.
+
+The history of a chart on a simulation account is not a backtest. An indicator which sends orders only when `isRt || isBacktest` is true behaves the same on both accounts, and never sends the orders of the history twice after a recalculation.
+
+## The order request
+
+`InsertOrder(OrderInsertRequest request, out string reason)` returns the id of the order, or `-1` with the reason.
+
+| `OrderInsertRequest` | Meaning |
+|---|---|
+| `OrderType` | `Market`, `Limit`, `Stop`, `StopLimit` |
+| `Quantity` | number of contracts. Positive buys, negative sells |
+| `Price` | required for every order which is not a market one |
+| `Brackets` | stop and targets attached to the entry, see below |
+| `BarsExpiration` | a limit or stop order still pending is cancelled by the chart when this many bars have closed |
+| `RefPositionId` | hedging accounts only: the position the order closes |
+
+## Brackets
+
+A bracket is an order attached to the entry, created when the entry is filled. The brackets of one entry are OCO: a target which is filled reduces the quantity of the stop, a stop which is filled cancels the targets.
+
+| `BracketParam` | Meaning |
+|---|---|
+| `IsTarget` | `true` a target (limit), `false` a stop |
+| `Quantity` | contracts closed by this bracket. Give the stop the whole quantity, and each target its part |
+| `Ticks` or `Price` | distance from the fill, in the favourable direction for a target and the opposite one for a stop, or an absolute price. One of the two is required |
+| `OcoTargetMoveBe`, `OcoTargetBeOffsetTicks` | target: when it is filled, the stop moves to the entry price, plus the offset |
+| `OcoStopBeEnabled`, `OcoStopBeTriggerTicks` / `OcoStopBeTriggerPrice`, `OcoStopBeOffsetTicks` / `OcoStopBeOffsetPrice` | stop: break-even. When the price reaches the trigger, the stop moves to the entry plus the offset |
+| `OcoStopTrailEnabled`, `OcoStopTrailTriggerTicks` / `OcoStopTrailTriggerPrice`, `OcoStopTrailOffsetTicks` / `OcoStopTrailOffsetPrice` | stop: trailing. From the trigger on, the stop follows the price at the offset |
+
+A bracket can also be added to an existing order with `InsertBracket(orderId, bracket, out reason)` and moved with `ModifyBracket(orderId, bracketId, ticks, price, out reason)`.
+
+## Positions and orders
+
+| Member | Meaning |
+|---|---|
+| `PositionNetQuantity` | position of the symbol of the chart on the account of the chart: positive long, negative short, zero flat |
+| `PositionBuyQuantity`, `PositionSellQuantity` | the two sides, for hedging accounts |
+| `GetAllOrdersStatus()` | the pending orders of the symbol |
+| `GetOrderInfo(orderId)` | one order, or `null` when it is not pending any more |
+
+An `OrderStatusInfo` has the `OrderId`, the `OriginalOrderId` the order was inserted with (a provider can change the id), the `PendingQuantity` and `FilledQuantity`, the `OrderType` and the `OrderStatus`: `Submitted`, `PendingRequest`, `PendingCancel`, `PendingModify`, `Filled`, `Canceled`, `Internal` (a bracket not yet sent), `Failed`, `Waiting` (an OCO order waiting on the server).
+
+## Changing and closing
+
+| Member | Meaning |
+|---|---|
+| `ModifyOrderPrice(orderId, price, out reason)` | returns the id, which can change: keep the returned one |
+| `ModifyOrderQuantity(orderId, quantity, out reason)` | same |
+| `RemoveOrder(orderId, out reason)` | cancels one order |
+| `FlatPosition(positionId, out reason)` | closes one position (hedging accounts) |
+| `FlatAllPositions()` | closes the position of the symbol |
+| `CancelAllOrders()` | cancels every pending order of the symbol, the brackets of an open position included |
+
+## Writing a trading indicator
+
+- **Decide on `OnClose`.** The open bar changes with every trade: a signal taken from it in realtime would not exist in the history.
+- **Trade the history only in a backtest.** `if (!isRt && !VAn.ChartPhase.HasFlag(ChartPhaseEnum.Backtesting)) return;` keeps a recalculation after a parameter change from sending the orders of the history again.
+- **Check the return value.** Log the reason with `VAn.AddToLog` and, when `TradingApi` is `null`, say it in `StatusMessage` from `OnLoad`.
+- **Keep the id of your pending entry** and remove it with `RemoveOrder`. `CancelAllOrders` would also cancel the brackets of the position.
+- **Read the position before entering.** `PositionNetQuantity` tells whether to add, to reverse or to do nothing.
+- **Use the time of the bars**, `BarVars[i].exchDt`, for a time filter. The indicator must not read the clock.
+
+The [Moving Average Cross Trading](/examples/moving-average-cross) example puts all of this together.

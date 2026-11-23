@@ -1,0 +1,67 @@
+---
+title: "Big Trade Marker"
+description: "Aggregated trades, annotations on the price and alerts."
+---
+
+**Source:** `src/Deepdom/Annotations/BigTradeMarker.cs`
+
+A circle on the price for every aggregated trade of at least a given size, with a message in realtime.
+
+## What it shows
+
+- The aggregated trades: `SetCalculateAggrTrades` and `AggrInfo`.
+- Annotations in the main area, their group and their removal.
+- A message for the user, in realtime only.
+
+## How it works
+
+The aggregated trades are asked for in `OnInit`. In `OnTick`, `aggrInfo` is `null` for every trade which does not complete an aggregate:
+
+```csharp
+public override void OnInit()
+{
+    Vbk.SetCalculateAggrTrades();
+}
+
+public override void OnTick(Feed.TickByTick newTick, bool isRt, bool isNewDay, AggrInfo aggrInfo)
+{
+    if (aggrInfo == null || aggrInfo.Vol < MinSize)
+        return;
+    bool isBuy = aggrInfo.TradeDir == TradeDirStatus.Ask || aggrInfo.TradeDir == TradeDirStatus.AboveAsk;
+    double price = Vbk.FromPinT(aggrInfo.PinT).Price;
+```
+
+The marker is an annotation on the main area, at the bar of the trade (`TickIndex + 1`) and at its price:
+
+```csharp
+    var mark = Vbk.CreateAnnotation(AnnotationType.Circle);
+    mark.Area = ChartAreaRef.Main;
+    mark.X = Vbk.TickIndex + 1;
+    mark.Y = price;
+    mark.Width = MarkerSize;
+    mark.LineColor = color;
+    mark.BackColor = color.WithOpacity(120);
+    Vbk.AddAnnotation(markers, mark);
+```
+
+The markers are kept in a list, and the oldest one is removed when there are too many:
+
+```csharp
+    shown.Add(mark);
+    if (shown.Count > MaxMarkers)
+    {
+        markers.RemoveAnnotation(shown[0]);
+        shown.RemoveAt(0);
+    }
+```
+
+## Things to notice
+
+- The group is created in `OnLoad`, and the list is emptied there: the chart starts from scratch at every load.
+- The message is shown only when `isRt` is `true`. During the history there would be one for every past trade.
+- `Tooltip` gives the annotation a text shown when the mouse is over it.
+
+## Try
+
+- Scale the marker with the size of the trade.
+- Show the sum of the big trades of each side in a label.

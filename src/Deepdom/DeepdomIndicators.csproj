@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Indicators for Deepdom: one dll loaded by the chart of the user.
+    The project targets plain net10.0 and references only the indicator API (VolBookAPI, VolumetricaCore) from the
+    Deepdom installation folder: no WPF and no chart control, so the compiler rejects what Deepdom would not load.
+    See docs/deepdom/project-setup.mdx.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Deepdom.Indicators.Examples</RootNamespace>
+    <AssemblyName>DeepdomIndicators.Examples</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Only the dll (and its pdb) goes in the indicators folder -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Folder Deepdom is installed in. Override it on the command line: dotnet build -p:DeepdomDir="D:\Deepdom\" -->
+    <DeepdomDir Condition="'$(DeepdomDir)' == ''">C:\Program Files\Volumetrica Trading\Deepdom\</DeepdomDir>
+    <!-- The same folder, always with the final slash (a value given on the command line can not be changed) -->
+    <DeepdomLibDir>$([MSBuild]::EnsureTrailingSlash('$(DeepdomDir)'))</DeepdomLibDir>
+    <!-- Your developer id: Deepdom loads a dll of the local folder only when it carries the id of the logged user.
+         See docs/hybrid/developer-id.mdx -->
+    <DeepdomDevId Condition="'$(DeepdomDevId)' == ''">YOUR-DEV-ID</DeepdomDevId>
+    <!-- The folder Deepdom loads the local indicators from -->
+    <OutputPath Condition="'$(OutputPath)' == ''">$(UserProfile)\Documents\Deepdom\Indicators\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="DeepdomDevId" Value="$(DeepdomDevId)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Private = false: the libraries are part of Deepdom, they are not copied next to the indicators -->
+    <Reference Include="VolBookAPI">
+      <HintPath>$(DeepdomLibDir)VolBookAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VolumetricaCore">
+      <HintPath>$(DeepdomLibDir)VolumetricaCore.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="CheckDeepdomSettings" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(DeepdomLibDir)VolBookAPI.dll') Or !Exists('$(DeepdomLibDir)VolumetricaCore.dll')"
+           Text="VolBookAPI.dll and VolumetricaCore.dll were not found in '$(DeepdomDir)'. Set DeepdomDir to the folder Deepdom is installed in: dotnet build -p:DeepdomDir=&quot;C:\path\to\Deepdom\&quot;" />
+    <Warning Condition="'$(DeepdomDevId)' == 'YOUR-DEV-ID'"
+             Text="DeepdomDevId is not set: Deepdom will not load this dll. Set your developer id in DeepdomIndicators.csproj or with -p:DeepdomDevId=..." />
+  </Target>
+</Project>

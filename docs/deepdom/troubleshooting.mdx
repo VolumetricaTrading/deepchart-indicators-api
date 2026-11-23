@@ -1,0 +1,85 @@
+---
+title: "Troubleshooting"
+description: "The build fails, or the indicator does not appear on Deepdom."
+---
+
+## The build fails
+
+<AccordionGroup>
+  <Accordion title="VolBookAPI.dll and VolumetricaCore.dll were not found">
+    The project looks for the two libraries in the folder Deepdom is installed in. Pass your folder:
+
+    ```bash
+    dotnet build src/Deepdom/DeepdomIndicators.csproj -p:DeepdomDir="D:\Apps\Deepdom"
+    ```
+
+    or change `DeepdomDir` in the project file. An old version of Deepdom does not have these libraries: update it.
+  </Accordion>
+  <Accordion title="The dll cannot be written">
+    The output folder is `Documents\Deepdom\Indicators`. If the build cannot write there, check that the folder exists and that no other program keeps the file open.
+  </Accordion>
+  <Accordion title="'Structure' is an ambiguous reference">
+    `VolBookAPI.Structure` (bars, profile) and `VolumetricaAPI.Connection.Structure` (trades, order book) have the same name. Use an alias for the second one:
+
+    ```csharp
+    using Feed = VolumetricaAPI.Connection.Structure;
+    ```
+  </Accordion>
+  <Accordion title="No constructor found">
+    An indicator must have a constructor with the parameters and the id:
+
+    ```csharp
+    public MyIndicator(BaseIndicatorPrms p_ind_p, int p_id) : base(p_ind_p, p_id) { }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## The indicator is not in the list
+
+<AccordionGroup>
+  <Accordion title="The developer id is missing or wrong">
+    The most common cause. The build warns when the id is still `YOUR-DEV-ID`, and the log of Deepdom says `DeepdomDevId ... is not the one of the user`. See [Developer id](/hybrid/developer-id).
+  </Accordion>
+  <Accordion title="The dll uses something which is not allowed">
+    Deepdom checks a dll before loading it, and does not load it when it uses anything outside what an indicator may use. A notification names the dll, and the log lists every use with the method it is in:
+
+    ```
+    MyIndicator.OnLoad: 'System.IO.File' is not allowed
+    ```
+
+    An indicator may use:
+
+    - the indicator API: `VolBookAPI`, `VolumetricaAPI.Chart`, and the types of `VolumetricaCore` the API gives you;
+    - the basic types of `System` (numbers, strings, `Math`, `DateTime`, `TimeSpan`, `Convert`, `Random`, the common exceptions, `Func` and `Action`), `System.Collections.Generic`, LINQ to objects, `StringBuilder`, `CultureInfo`;
+    - the attributes of `System.ComponentModel`, `System.ComponentModel.DataAnnotations`, `System.Text.Json.Serialization` and `VolumetricaControls` for the parameters;
+    - `Debug`, `Stopwatch` and `Console` while you develop.
+
+    Everything else is rejected: reflection (`typeof` and `GetType()` included), records, `dynamic`, files, network, processes, threads, tasks and `async`, `lock`, `unsafe` code and `DllImport`, WPF, references to other libraries, and the trading interface (`VolBookAPI.Trading`, `TradingApi`), which is not available to a custom indicator.
+  </Accordion>
+  <Accordion title="The class has no Register method">
+    An indicator is listed only if it has a `public static` method named `Register` returning `IndicatorDescriptionBase`.
+  </Accordion>
+  <Accordion title="The dll is in another folder">
+    Deepdom loads local indicators from `Documents\Deepdom\Indicators`. Check `OutputPath` if you changed it.
+  </Accordion>
+  <Accordion title="The indicator throws when it is created">
+    The constructor, the property initializers and `OnSet` with `setDefault` run when the indicator is added from the list, before the chart exists. In `OnSet`, return right after setting the calls when `setDefault` is `true`: `Vbk` is `null` there.
+  </Accordion>
+</AccordionGroup>
+
+## The indicator is on the chart but draws nothing
+
+- **No call was asked for.** `IndPrms.OnOpenCall`, `OnCloseTickCall`, `OnEndCall` are `Off` by default. Set them in `OnSet`.
+- **`OnSet` returned too early.** The area and the series are created after the `setDefault` check, not before it.
+- **The points are hidden.** A point added with `isHidden: true` stays hidden until you set `IsHidden = false`.
+- **An annotation was not added.** Creating it is not enough: call `Vbk.AddAnnotation(group, annotation)`, and give the group and the annotation an `Area`.
+- **The annotation is in the wrong place.** With absolute coordinates the bar `i` is at `X = i + 1`, and `Y` is a value of the axis of its area. Set `Area = CA.Value` to draw in the area of the indicator.
+- **The state was not reset.** The chart is loaded again from scratch, also as the session goes on. Fields which keep their old values give wrong results from the second load on: reset them in `OnLoad`.
+- **`OnBook` is never called.** The book is received when the chart shows the order book. Check the mode of the chart.
+
+## The values are wrong
+
+- **The volumes of a bar are zero.** `AskVol` and `BidVol` are complete in `OnTickClose`, not in `OnBookClose`: see [Two indices](/deepdom/concepts/lifecycle#two-indices).
+- **The last bar is behind.** The bar still open is updated in `OnEnd`, which is called after the history and after every batch of realtime updates.
+- **The session data looks ahead.** `DailyProfile` and `DayHigh`, `DayLow`, `DayOpen`, `DayLast` describe the whole session, also during the history. Do not use them for a value bar by bar.
+- **The cumulative value misses the start of the session.** Ask for `OnTickCall = CallHandler.Full` and accumulate the trades before the first bar in `OnIniParallelTick`, see [Life cycle](/deepdom/concepts/lifecycle#the-trades-before-the-first-bar).

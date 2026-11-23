@@ -1,0 +1,98 @@
+---
+title: "Types and attributes"
+description: "The data types, enums and attributes a Deepdom indicator uses."
+---
+
+The drawing interfaces are in [Drawing interfaces](/reference/rendering). `ColorRef`, `VolCustomAttribute`, `ChartAreaRef` and the enums of the drawing are the same as in Deepchart: see [Attributes and types](/reference/attributes-and-types).
+
+## CallHandler
+
+`VolBookAPI.ExternalStructure.CallHandler`, the value of the `*Call` properties of `IndPrms`.
+
+| Value | Meaning |
+|---|---|
+| `Off` | never called |
+| `RT` | realtime only |
+| `HistRT` | history and realtime |
+| `Full` | `OnTickCall` only: `HistRT` plus `OnIniParallelTick` |
+
+## BookBar
+
+One bar of the chart. See [Bars and trades](/deepdom/concepts/bars-and-trades).
+
+| Member | Meaning |
+|---|---|
+| `ExDt`, `LocDt` | time of the bar: exchange time, local time |
+| `AskPrice`, `BidPrice` | best ask and bid at the end of the bar |
+| `MaxAskPrice`, `MinBidPrice` | extremes of the bar |
+| `AskVol`, `BidVol` | volume traded at the ask and at the bid |
+| `IniTickBase`, `EndTickBase` | indices in `TickList` of the first and the last trade of the bar, `null` without trades |
+
+## TickByTick
+
+A trade, in `VolumetricaAPI.Connection.Structure` (alias `Feed` in the examples).
+
+| Member | Meaning |
+|---|---|
+| `price`, `PinT` | price, as a number and as integer ticks |
+| `Vol` | size |
+| `bid`, `ask` | best bid and ask at the time of the trade |
+| `exDt` | exchange time |
+
+## AggrInfo
+
+An aggregated trade, given to `OnTick` with the trade which completes it.
+
+| Member | Meaning |
+|---|---|
+| `PinT` | price |
+| `TradeDir` | `Ask`, `Bid`, `AboveAsk`, `BelowBid`, `Unknown` (`TradeDirStatus`) |
+| `Vol` | total size |
+
+## BookInfo
+
+One level of the order book, in `VolumetricaAPI.Connection.Structure`.
+
+| Member | Meaning |
+|---|---|
+| `PinT`, `Price` | the price |
+| `isAsk` | the side |
+| `Qty` | quantity at that price now; zero when the level is gone |
+| `DiffQty` | change since the previous update |
+
+## ProfileClass and VbpClass
+
+The volume profile of the session (`Vbk.DailyProfile`).
+
+| Member of `ProfileClass` | Meaning |
+|---|---|
+| `vbpItems` | the levels (`VbpClass`), indexed by `PinT`. `Values` to enumerate them, `SortedLHValues` from the lowest price up |
+| `HinT`, `LinT` | highest and lowest price of the profile, as ticks |
+| `LastPrice` | last price |
+
+| Member of `VbpClass` | Meaning |
+|---|---|
+| `PriceInTicksLow`, `PriceInTicksHigh` | the price of the level, as ticks |
+| `TotVol`, `AskVol`, `BidVol` | volume traded, and its ask and bid parts |
+| `TotNT`, `AskNT`, `BidNT` | number of trades |
+
+## LiquiditySumHelper
+
+Sums of the first levels of each side of the book, see [Order book](/deepdom/concepts/order-book#liquiditysumhelper).
+
+## Enums of the colors
+
+In `VolBookAPI.Structure`, for `IMethodAPI.GetColorRefForTheme`.
+
+| Enum | Values |
+|---|---|
+| `ColorReferenceEnum` | `Volume`, `Bid`, `Ask`, `Neutral`, `Up`, `Down`, `Container`, `Border` |
+| `ColorTypeEnum` | `Stroke`, `Fill`, `Text` |
+| `ColorRangeEnum` | `Default`, `Light`, `Strong`, `Range1` ... `Range4`, `Secondary` |
+
+## Attributes of the parameters
+
+| Attribute | Namespace | Meaning |
+|---|---|---|
+| `[Category]`, `[DisplayName]` | `System.ComponentModel` | section and label of a parameter |
+| `[VolCustom]` | `VolumetricaControls` | order and limits, see [Parameters](/deepdom/concepts/parameters-and-colors#parameters) |

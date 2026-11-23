@@ -1,0 +1,113 @@
+---
+title: "Bars and trades"
+description: "The bars of the chart, the trades and the volume profile of the session."
+---
+
+An indicator reads its data from `Vbk`, the chart API.
+
+## Bars
+
+A bar of a Deepdom chart is a slice of time of the session, with the order book and the trades of that slice.
+
+```csharp
+List<BookBar> bars = Vbk.BookBars;
+BookBar current = bars[Vbk.BookIndex];   // the bar being built with the book
+BookBar trading = bars[Vbk.TickIndex];   // the bar the trades are being added to
+```
+
+| Member of `BookBar` | Meaning |
+|---|---|
+| `ExDt` | time of the bar, in the time of the exchange. Use it for calculations |
+| `LocDt` | time of the bar in the local time of the user: for display only |
+| `AskPrice`, `BidPrice` | best ask and best bid at the end of the bar |
+| `MaxAskPrice`, `MinBidPrice` | highest ask and lowest bid seen during the bar |
+| `AskVol`, `BidVol` | volume traded at the ask and at the bid, complete from `OnTickClose` on |
+
+See [Two indices](/deepdom/concepts/lifecycle#two-indices) for `BookIndex` and `TickIndex`. Never read bars after `BookIndex` during the history: they are not there yet.
+
+## Trades
+
+With `OnTickCall` set, `OnTick` receives every trade:
+
+```csharp
+public override void OnTick(Feed.TickByTick newTick, bool isRt, bool isNewDay, AggrInfo aggrInfo)
+{
+    if (newTick.price >= newTick.ask) delta += newTick.Vol;        // a buy
+    else if (newTick.price <= newTick.bid) delta -= newTick.Vol;   // a sell
+}
+```
+
+where `Feed` is an alias: `using Feed = VolumetricaAPI.Connection.Structure;`.
+
+| Member of `TickByTick` | Meaning |
+|---|---|
+| `price`, `PinT` | price of the trade, as a number and as integer ticks |
+| `Vol` | size |
+| `bid`, `ask` | best bid and ask at the time of the trade |
+| `exDt` | time of the trade, exchange time |
+
+A trade at the ask or above is a buy, at the bid or below a sell: this is the rule the chart itself uses for `AskVol` and `BidVol`.
+
+## Aggregated trades
+
+A large order is often filled by several trades at the same price within a few milliseconds. The chart can put them back together: ask for it in `OnInit`, and `OnTick` then receives an `AggrInfo` with the trade which completes an aggregate.
+
+```csharp
+public override void OnInit()
+{
+    Vbk.SetCalculateAggrTrades();
+}
+
+public override void OnTick(Feed.TickByTick newTick, bool isRt, bool isNewDay, AggrInfo aggrInfo)
+{
+    if (aggrInfo == null)   // this trade did not complete an aggregate
+        return;
+    int size = aggrInfo.Vol;
+    bool isBuy = aggrInfo.TradeDir == TradeDirStatus.Ask || aggrInfo.TradeDir == TradeDirStatus.AboveAsk;
+    double price = Vbk.FromPinT(aggrInfo.PinT).Price;
+}
+```
+
+`aggrInfo` is `null` for every trade which does not complete an aggregate, and the aggregate it describes includes the trade just received. The [Big Trade Marker](/deepdom/examples/big-trade-marker) example uses it.
+
+## Prices as integer ticks
+
+Volume data is indexed by the price as an integer number of ticks, called `PinT`. Convert with:
+
+```csharp
+double price = Vbk.FromPinT(pinT).Price;
+int pinT = Vbk.FromPrice(price).PinT;
+int ticks = Vbk.GetDoubleTicksDiff(lowPrice, highPrice);
+double higher = Vbk.DoubleAddSubTicks(price, 4);
+```
+
+Always use these helpers: the size of a tick can change along the price scale of some symbols.
+
+## Volumes
+
+Volumes are integers. For symbols traded in fractions (cryptocurrencies) the real size is the integer multiplied by `Vbk.VolMultiplier`: use it for the values of a series, and `Vbk.FormatVolume(value)` for a text (`1.5K`), which applies it by itself.
+
+## The session
+
+| Member of `Vbk` | Meaning |
+|---|---|
+| `DailyProfile` | the volume profile of the session: for every price, the volume traded (`VbpClass`), indexed by `PinT` |
+| `DayOpen`, `DayHigh`, `DayLow`, `DayLast` | prices of the session, also as ticks: `DayOinT`, `DayHinT`, `DayLinT` |
+
+These are **snapshots of the whole session**: in realtime they follow every trade, but during the history they already hold the trades which come after the bar being calculated. Use them for what the session is now, as the [Profile POC](/deepdom/examples/profile-poc) example does, not for a value bar by bar.
+
+```csharp
+foreach (VbpClass level in Vbk.DailyProfile.vbpItems.SortedLHValues)   // from the lowest price up
+{
+    double price = Vbk.FromPinT(level.PriceInTicksLow).Price;
+    int total = level.TotVol, ask = level.AskVol, bid = level.BidVol;
+}
+```
+
+## The chart
+
+| Member of `Vbk` | Meaning |
+|---|---|
+| `SymbolName`, `SymbolDescription` | the symbol |
+| `MaxBarViewed` | number of bars the chart keeps |
+| `NumCore` | cores used by the [parallel pass](/deepdom/concepts/lifecycle#the-trades-before-the-first-bar) |

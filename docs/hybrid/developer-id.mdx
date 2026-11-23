@@ -3,12 +3,19 @@ title: "Developer id"
 description: "Why a local dll needs your id, and where to set it."
 ---
 
-Deepchart loads a dll from the local indicators folder only when the dll was built for the user who is logged in. The dll says who it was built for with a piece of metadata: your **developer id**.
+Deepchart and Deepdom load a dll from the local indicators folder only when the dll was built for the user who is logged in. The dll says who it was built for with a piece of metadata: your **developer id**. The id is the same for both products; what changes is the name it is written under.
+
+| | Deepchart | Deepdom |
+|---|---|---|
+| Metadata name | `DeepchartDevId` | `DeepdomDevId` |
+| Project property | `DeepchartDevId` in `src/Deepchart/DeepchartIndicators.csproj` | `DeepdomDevId` in `src/Deepdom/DeepdomIndicators.csproj` |
+| Local folder | `Documents\Deepchart\Indicators` | `Documents\Deepdom\Indicators` |
 
 A dll without the id, or with the id of another user, is skipped. The reason is written in the log of the app:
 
 ```
 Indicators of MyIndicators.dll not loaded: DeepchartDevId missing is not the one of the user
+Indicators of MyIndicators.dll not loaded: DeepdomDevId missing is not the one of the user
 ```
 
 ## Where to find your id
@@ -16,21 +23,26 @@ Indicators of MyIndicators.dll not loaded: DeepchartDevId missing is not the one
 {/* TODO: say where the user reads the developer id (not defined yet). */}
 
 <Warning>
-  This page does not yet say where the developer id is shown. Until it does, ask Deepchart support for yours.
+  This page does not yet say where the developer id is shown. Until it does, ask Volumetrica support for yours.
 </Warning>
 
 ## Where to set it
 
-In `src/DeepchartIndicators.csproj`:
+In the project file:
 
 ```xml
 <DeepchartDevId Condition="'$(DeepchartDevId)' == ''">YOUR-DEV-ID</DeepchartDevId>
 ```
 
+```xml
+<DeepdomDevId Condition="'$(DeepdomDevId)' == ''">YOUR-DEV-ID</DeepdomDevId>
+```
+
 or on the command line, which keeps the id out of the repository:
 
 ```bash
-dotnet build src/DeepchartIndicators.csproj -p:DeepchartDevId=your-id
+dotnet build src/Deepchart/DeepchartIndicators.csproj -p:DeepchartDevId=your-id
+dotnet build src/Deepdom/DeepdomIndicators.csproj -p:DeepdomDevId=your-id
 ```
 
 The project writes it in the dll as assembly metadata:
@@ -49,4 +61,4 @@ The build warns when the id is still the placeholder.
 
 ## What the id is not
 
-The id identifies you as the author of the dll on your own installation. It is not a license and it does not protect the dll: a dll built with your id is loaded only by your account. To let other users have your indicators, see [Sharing indicators](/hybrid/sharing).
+The id identifies you as the author of the dll on your own installation. It is not a license and it does not protect the dll: a dll built with your id is loaded only by your account. To let other users have your indicators, see [Sharing indicators](/hybrid/sharing) for Deepchart and [Local and shared indicators](/deepdom/sharing) for Deepdom.

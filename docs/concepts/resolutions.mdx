@@ -1,0 +1,104 @@
+---
+title: "Other resolutions"
+description: "The bars of another bar size of the symbol of the chart: RequestResolution."
+---
+
+An indicator reads the bars of its chart from `VAn.BarVars`. It can also ask for the bars of another resolution of the same symbol, the 30 minutes bars on a 5 minutes chart for example, or the daily ones, and read them next to the bars of the chart.
+
+## Asking for a resolution
+
+```csharp
+ResolutionData htf;
+
+public override void OnInit()
+{
+    htf = VAn.RequestResolution(ChartResolutionInfo.ParamTypeEnum.Minute, 30, 0);
+}
+```
+
+```csharp
+ResolutionData RequestResolution(ChartResolutionInfo.ParamTypeEnum ParamType, int Param1, int Param2,
+                                 int? DaysToLoad = null, bool? BasedOnMinute = null)
+```
+
+| Parameter | Meaning |
+|---|---|
+| `ParamType`, `Param1`, `Param2` | the resolution, described like the one of a chart (see below) |
+| `DaysToLoad` | days of history. `null`: the days of the chart. Daily bars need more than a chart of minutes usually has |
+| `BasedOnMinute` | `true`: the bars are built from the minute data, `false`: from the trades. `null`: the setting of the chart. Minute data is lighter: use it for time based resolutions |
+
+The resolution is described like the one of a chart. `VAn.ParamType`, `VAn.Param1` and `VAn.Param2` are the ones of the chart itself.
+
+| `ParamType` | `Param1` | `Param2` |
+|---|---|---|
+| `Minute`, `Second` | number of minutes or seconds | |
+| `Daily`, `Weekly`, `Montly` | number of days, weeks, months | |
+| `Volume`, `Trade` | contracts, or trades, per bar | |
+| `Range` | size of the bar in ticks | |
+| `Renko` | size of the brick in ticks | reversal, in ticks |
+| `Delta` | delta per bar | |
+
+The same request made twice returns the same data. A resolution asked for with different days to load is still the same resolution: the days of the first request are kept.
+
+The three overloads which take a symbol (`RequestResolution(symbol, ...)`) give the bars of another symbol. They are [desktop only](/hybrid/desktop-only): a package which uses them is calculated on the desktop.
+
+## Where to call it
+
+<Warning>
+  Call `RequestResolution` in `OnInit`, and only there. Before `OnInit` the chart drops the resolutions no indicator asks for; after it, it prepares the ones asked for and loads them. A resolution asked for from `OnLoad` or later is never prepared, and the chart stops.
+</Warning>
+
+Ask for it at every `OnInit`, not only the first time: a resolution which is not asked for again is removed.
+
+## When the data is there
+
+Right after the call the resolution has no bars yet: `HasBar` is `false`. It is loaded with the history of the chart, before the bars of the chart are calculated, so from `OnOpen` on the bars are there. A resolution kept from the previous load of the chart has its old bars already.
+
+Read it from `OnOpen`, `OnClose` and `OnEnd`, never from `OnInit` or `OnLoad`, and check `HasBar` (or the bar for `null`) every time: some symbols have no data for some resolutions. `OnEnd(false)`, called once when the whole history is done, is the safe place for anything which needs the complete series.
+
+## Reading it
+
+| `ResolutionData` | Meaning |
+|---|---|
+| `HasBar` | at least one bar has been loaded |
+| `BarVars` | the bars, `BarClass` like the ones of the chart |
+| `BarIndex`, `CurrentBar` | the last bar, the one still open in realtime |
+| `LastPrice` | last price seen by the resolution |
+| `IniTimeSession`, `EndTimeSession` | its session |
+| `FindBarIndexByExchDt(exchDt)` | index of the bar a time belongs to, in exchange time |
+| `FindBar(dt, useLocalDt = true)` | the bar a time belongs to. Pass `useLocalDt: false` with an exchange time |
+| `AddNewFilter(min, max, inputType, vbpType, interval, needVbp)` | asks for the volume totals (and the volume by price with `needVbp`) of its bars |
+| `FromPrice`, `FromPinT`, `DoubleAddSubTicks`, `GetDoubleTicksDiff` | the tick helpers, for its symbol |
+
+**The bar of the resolution a bar of the chart belongs to** is found by time. Use `exchDt`, the time of the exchange: the local time changes with the settings of the user. A time before the first bar of the resolution gives index 0, so check it first:
+
+```csharp
+BarClass Find(DateTime exchDt)
+{
+    if (!htf.HasBar || exchDt < htf.BarVars[0].exchDt)
+        return null;
+    return htf.BarVars[htf.FindBarIndexByExchDt(exchDt)];
+}
+
+var bar = Find(VAn.BarVars[VAn.BarIndex].exchDt);
+```
+
+**The volume totals** of the bars of another resolution (`VolTotList[0]`: `AskVol`, `BidVol`, ...) exist only when an indicator asks for them, in `OnInit`:
+
+```csharp
+htf.AddNewFilter(0, 0, DataInputTypeEnum.Volume, VbpType.Bar, 0, false);
+```
+
+The chart does this by itself for its own bars. Pass `needVbp: true` to have the volume by price too.
+
+## Looking ahead
+
+<Warning>
+  During the history the bars of a higher resolution are already complete. A bar of a 5 minutes chart in the middle of a 30 minutes bar sees the close of that bar, which in realtime it would not know. An indicator which takes signals from a higher resolution must use the previous bar of the resolution, or only the values known at the time of the bar of the chart. Drawing is not affected.
+</Warning>
+
+## On the server
+
+The server has, for now, only the resolution of the chart itself: asking for another one throws `NotSupportedException`. The overload without a symbol is portable, so a package which uses it is still eligible for the server. Test on the desktop, and keep this in mind before publishing.
+
+The [Higher Timeframe Candles](/examples/higher-timeframe-candles) example draws the bars of another resolution over the bars of the chart.

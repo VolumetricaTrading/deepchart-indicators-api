@@ -38,6 +38,7 @@ Other coordinate types, set with `CoordinateXType` and `CoordinateYType`:
 | `Absolute` | bars and values (the default) |
 | `Relative` | a position in the chart area, from `0` to `1`: the annotation stays in place while the chart scrolls |
 | `Pixel` | pixels from the edge of the chart area |
+| `Session` | on the Profile chart, a position in the group of a session: see [The Profile chart](#the-profile-chart) |
 
 ```csharp
 label.CoordinateXType = CoordinateTypeEnum.Relative;
@@ -69,6 +70,30 @@ public override void OnLoad()
 
 The chart empties the groups of the indicator before every calculation, so create your groups and your fixed annotations in `OnLoad`.
 
+### Showing, hiding and layering a group
+
+Two properties of a group apply to everything it contains:
+
+- `Visible`: `false` hides the group without removing its annotations.
+- `PlotForeground`: where its annotations are drawn, relative to the bars.
+
+| `PlotForeground` of the group | Its annotations are drawn |
+|---|---|
+| `null` (the default) | each one where its own `PlotForeground` says: `false` under the bars, `true` over them |
+| `false` | under the bars, all of them |
+| `true` | over the bars and the other indicators, all of them |
+
+A value set on a group also holds for the groups inside it, and it wins over the `PlotForeground` of the annotations.
+
+```csharp
+labels.PlotForeground = true;   // every label over the bars
+boxes.Visible = false;          // the boxes are kept, not drawn
+```
+
+A third property limits how many annotations are drawn: with `MaxCountShown` at `-1` (the default) there is no limit, otherwise only the last annotation of the group and the `MaxCountShown` before it are drawn.
+
+All three can come from a parameter of the indicator, so the user changes them without a new calculation: see [Parameters resolved by the chart](/concepts/parameters#parameters-resolved-by-the-chart).
+
 ## Which area
 
 An annotation is drawn in the main area of the chart (the price) unless you say otherwise:
@@ -87,6 +112,88 @@ annotation.Area = ChartAreaRef.Main;  // the price area (the default)
 | `FontSize`, `FontBold` | font |
 | `TextAlign` | alignment relative to the position |
 | `BackColor`, `LineColor` | background and border |
+
+A text with `\n` is drawn on several lines, centered on each other.
+
+### A text that must fit in a space
+
+With `TextOnlyInside`, a `Text` (or a `MultiTextLine`, by its widest line) is drawn only when it fits between `X2` and `X3`. They are in the unit of `X`, in any order, and the alignment does not matter: `X` stays the point of the text. The chart checks it when it draws, with the real size of the text, so the indicator does not measure anything and the check also works for an indicator calculated on the server.
+
+```csharp
+label.TextAlign = TextAlignment.VRightHBottom;   // ends at X, above Y
+label.X = lineEnd;
+label.TextOnlyInside = true;
+label.X2 = lettersEnd;                            // it must not go to the left of here
+label.X3 = lineEnd;                               // nor to the right of here
+```
+
+- A side left at `0` has no limit. When only one is given, it limits the side of `X` where it is.
+- Without `X2` and `X3`, `TextOnlyInside` on a `Text` means: only when it fits in the width of a bar.
+
+### Labels that do not overlap: MultiTextStack
+
+A `MultiTextStack` holds `Text` annotations, added with `AddToList`, each at its own `X` and `Y` as a normal text. When it draws them, the chart:
+
+1. leaves out the texts which do not fit between their `X2` and `X3` (`TextOnlyInside`);
+2. piles up the texts at the same point (same `X`, `Y` and `TextAlign`) in the order of the list, as the lines of a `MultiTextLine`: the first stays at the point, the others go above it for texts above their point (`...HBottom`) and below it for the others;
+3. moves apart vertically the texts which overlap, as little as possible and in the order of their `Y`. A column is made of the texts whose boxes overlap horizontally;
+4. draws a vertical line of `LineWidth` pixels, in the color of the text, from a text that moved to its `Y` (`0`: no line). A text piled at step 2 has not moved.
+
+Because the texts that do not fit are left out first, they never push the others away.
+
+```csharp
+var stack = VAn.CreateAnnotation(default(AnnotationType));
+stack.AnnotationType = AnnotationType.MultiTextStack;
+stack.LineWidth = 1;                              // line from a moved label to its level
+stack.Margin = MarginEnum.Y | MarginEnum.Y2;
+stack.PixelMargin = 4;                            // 4 pixels between two labels
+VAn.AddAnnotation(group, stack);
+
+var label = VAn.CreateAnnotation(default(AnnotationType));
+label.AnnotationType = AnnotationType.Text;       // not added to a group: the stack draws it
+label.Text = "VAH";
+label.TextAlign = TextAlignment.VRightHBottom;
+label.X = lineEnd;
+label.Y = vahPrice;
+stack.AddToList(label);
+```
+
+The space between two texts of a column is the `PixelMargin` of the stack (when its `Margin` has `Y` or `Y2`), plus the `PixelMargin` of the texts on the facing sides (`MarginY2` of the upper one, `MarginY` of the lower one). On a text, `MarginX` / `MarginX2` with `PixelMargin` move it away from `X` by that many pixels. The position of the stack itself is not used.
+
+A child leaves the stack with `stack.RemoveFromList(label)`: the others close up on the space it leaves when the chart draws them again. `ClearList()` removes all of them. A child with `Visible = false` stays in the stack but is left out, as one that does not fit.
+
+One stack can hold texts that belong to different objects, for example the labels of many sessions on the right edge of the chart (`AllignToRight`): when a session is drawn again, remove only its labels with `RemoveFromList`. Keep that stack in a group which is not emptied with the sessions, such as `IndVars.FrontAnnList`.
+
+## The Profile chart
+
+On the Profile chart of Deepchart the X axis has no bars: every session is a column, and each indicator draws a session in its own group. Everything in this section is [desktop only](/hybrid/desktop-only).
+
+The chart lists only the indicators which allow it in `Register()`:
+
+```csharp
+return new IndicatorDescriptionBase
+{
+    Name = "My Profile",
+    ProfileChartAllowed = true
+};
+```
+
+`VAn.IsProfileChart` tells the indicator which chart it is on. On the Profile chart it creates a group for each session it draws:
+
+```csharp
+// bar: the first bar of the session
+ISessionAnnGroup session = VAn.NewSessionAnnotationGroup(IndVars, bar.SessionIndex, bar.exchDt);
+session.AnnGroup = VAn.CreateAnnGroup();
+session.Width = 40;
+session.Visible = true;
+// then add the annotations to session.AnnGroup
+```
+
+- **Visible.** A new group is not visible, and a group which is not visible takes no space in its session. Set `Visible` when its `Width` is set.
+- **Order.** The groups of the indicator in a session are placed in the order of the time given to `NewSessionAnnotationGroup`, in exchange time. The X axis shows it in the local time of the chart.
+- **Inside the group.** With the default coordinates, X counts from the start of the group with the unit of the bars: `X = 1` is its first column, `X = Width + 1` its end.
+- **From another session.** An annotation is anchored to a group with `CoordinateXType = CoordinateTypeEnum.Session` and `X = session.Id | m`: column `m` of that group, the same as `X = 1 + m` inside it. As `X2`, the `Id` of the group of `X` with `m` 0 is the end of that group. Rectangles, lines, horizontal lines and texts support it.
+- **Under the mouse.** The bar index given to `OnContextMenu` is a position of the X axis: `VAn.GetSessionAnnotationGroupByXIndex(barIndex)` returns its group, or `null`, and the `ReferenceExchDateTime` of the group tells which of the profiles it is. `VAn.GetMainPointsCount()` is the number of positions of the axis.
 
 ## Performance
 

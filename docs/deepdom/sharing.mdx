@@ -1,0 +1,28 @@
+---
+title: "Local and shared indicators"
+description: "Your own dll, and the packages Deepdom downloads for its users."
+---
+
+An indicator can reach a Deepdom chart in two ways.
+
+| | Local | Shared package |
+|---|---|---|
+| Who can use it | you | the users it is shared with |
+| The dll is on the user's computer | yes, in the indicators folder | yes, managed by Deepdom |
+| Shown in the indicator list under | Personal | Shared |
+
+In both cases the indicator is calculated by the chart of the user. Deepdom has no server side calculation.
+
+## Local
+
+What the [Quickstart](/deepdom/quickstart) builds: a dll in `Documents\Deepdom\Indicators`, loaded only for your account because it carries your [developer id](/hybrid/developer-id). This is how you develop and test.
+
+## Shared package
+
+A package is a set of indicators published for other users. Deepdom downloads the packages available to each user and keeps them: there is nothing to copy by hand, and a new version replaces the old one.
+
+The user manages them from **Options > Tool > Manage External Indicators**, or with the settings button next to **Shared** in the indicator list: the window lists the packages, downloads them and removes them.
+
+<Note>
+  Publishing packages is not open to every developer yet. This page explains how the pieces fit, so you can write indicators which are ready for it.
+</Note>

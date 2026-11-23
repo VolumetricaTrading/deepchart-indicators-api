@@ -1,62 +1,118 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Deepchart Indicators",
+  "name": "Deepchart and Deepdom Indicators",
   "colors": {
     "primary": "#2563EB"
   },
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Get started",
-        "pages": ["introduction", "quickstart", "project-setup"]
-      },
-      {
-        "group": "Concepts",
-        "pages": [
-          "concepts/lifecycle",
-          "concepts/parameters",
-          "concepts/series",
-          "concepts/annotations",
-          "concepts/colors",
-          "concepts/axes-and-placement",
-          "concepts/market-data",
-          "concepts/alerts"
+        "tab": "Deepchart",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["introduction", "quickstart", "project-setup"]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/lifecycle",
+              "concepts/parameters",
+              "concepts/series",
+              "concepts/annotations",
+              "concepts/colors",
+              "concepts/axes-and-placement",
+              "concepts/market-data",
+              "concepts/resolutions",
+              "concepts/alerts",
+              "concepts/trading"
+            ]
+          },
+          {
+            "group": "Desktop and server",
+            "pages": [
+              "hybrid/hybrid-indicators",
+              "hybrid/desktop-vs-server",
+              "hybrid/desktop-only",
+              "hybrid/developer-id",
+              "hybrid/sharing"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/simple-moving-average",
+              "examples/price-bands",
+              "examples/session-range-box",
+              "examples/info-label",
+              "examples/bar-poc",
+              "examples/live-delta",
+              "examples/higher-timeframe-candles",
+              "examples/book-imbalance",
+              "examples/moving-average-cross"
+            ]
+          },
+          {
+            "group": "API reference",
+            "pages": [
+              "reference/indicator",
+              "reference/chart-api",
+              "reference/rendering",
+              "reference/attributes-and-types"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": ["troubleshooting"]
+          }
         ]
       },
       {
-        "group": "Desktop and server",
-        "pages": [
-          "hybrid/hybrid-indicators",
-          "hybrid/desktop-only",
-          "hybrid/developer-id",
-          "hybrid/sharing"
+        "tab": "Deepdom",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["deepdom/introduction", "deepdom/quickstart", "deepdom/project-setup"]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "deepdom/concepts/lifecycle",
+              "deepdom/concepts/bars-and-trades",
+              "deepdom/concepts/order-book",
+              "deepdom/concepts/drawing",
+              "deepdom/concepts/parameters-and-colors"
+            ]
+          },
+          {
+            "group": "Loading and sharing",
+            "pages": ["hybrid/developer-id", "deepdom/sharing"]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "deepdom/examples/bar-delta",
+              "deepdom/examples/session-cvd",
+              "deepdom/examples/big-trade-marker",
+              "deepdom/examples/book-imbalance",
+              "deepdom/examples/profile-poc"
+            ]
+          },
+          {
+            "group": "API reference",
+            "pages": [
+              "deepdom/reference/indicator",
+              "deepdom/reference/chart-api",
+              "reference/rendering",
+              "deepdom/reference/types"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": ["deepdom/troubleshooting"]
+          }
         ]
-      },
-      {
-        "group": "Examples",
-        "pages": [
-          "examples/simple-moving-average",
-          "examples/price-bands",
-          "examples/session-range-box",
-          "examples/info-label",
-          "examples/bar-poc",
-          "examples/live-delta",
-          "examples/book-imbalance"
-        ]
-      },
-      {
-        "group": "API reference",
-        "pages": [
-          "reference/indicator",
-          "reference/chart-api",
-          "reference/rendering",
-          "reference/attributes-and-types"
-        ]
-      },
-      {
-        "group": "Help",
-        "pages": ["troubleshooting"]
       }
     ]
   }

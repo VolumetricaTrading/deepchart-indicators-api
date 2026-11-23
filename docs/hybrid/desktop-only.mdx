@@ -15,9 +15,15 @@ The consequence is for the whole package: **when any indicator of a package uses
 | `SetCalculateAggrTrades()` | aggregated trades are built only on the desktop | |
 | `SetNeedPullbackBar()`, `PullbackBar`, `PullbackSourceInfo` | the pullback bar is built only on the desktop | |
 | `GetBarVars()`, `GetVolumeVbp()`, `GetMinuteVbp()` | secondary bars of the chart | `BarVars` |
+| `AddNewFilter()` | the server has only the data of the bars, without filters | `NeedVbp` for the volume by price of the bars, `VolTotList[0]` for their totals |
 | `GetParamsById()`, `GetSeriesValueById()` | the other indicators of a chart are known only by that chart | |
-| `RequestResolution(string Symbol, ...)` | data of another symbol | `RequestResolution(ParamType, Param1, Param2)` for the same symbol |
+| `RegisterSharedValues()`, `SetSharedValue()`, `HasSharedValues()`, `GetSharedValue()`, `GetSharedText()`, `GetSharedValues()` | values shared between the indicators of a chart, which only that chart knows | |
+| `RequestResolution(string Symbol, ...)` | data of another symbol | `RequestResolution(ParamType, Param1, Param2)` for the same symbol, see [Other resolutions](/concepts/resolutions) |
 | `GetColorForTheme()` | returns the resolved color | `GetColorRefForTheme()` |
+| `GetChartBackColor()` | the background is a setting of the chart of each user | a theme color |
+| `GetChartAreaMeasures()`, `GetMainPointsCount()` | sizes of the chart of each user, as it is drawn | |
+| `NewSessionAnnotationGroup()`, `GetSessionAnnotationGroupByXIndex()` | the Profile chart exists only on the desktop, see [The Profile chart](/concepts/annotations#the-profile-chart) | |
+| `AddMenuItem()` | the context menu of the chart of each user, see [Context menu](/reference/chart-api#context-menu) | |
 
 ## Indicator
 
@@ -26,7 +32,8 @@ The consequence is for the whole package: **when any indicator of a package uses
 | `OnBook`, `OnBookCall` | order book updates |
 | `OnResizeAxis`, `OnResizeCall` | the axes are resized by the chart of each user |
 | `OnFundInfoCall` | fundamental data |
-| `TradingApi` and every member of `ITradingAPI` | orders and positions belong to the user |
+| `OnContextMenu` | the context menu of the chart of each user |
+| `TradingApi` and every member of `ITradingAPI` | orders and positions belong to the user, see [Trading](/concepts/trading) |
 
 ## Drawing
 
@@ -46,6 +53,10 @@ OnTickCall = CallHandler.HistRT;
 
 The server calculates the history from the bars and does not replay the trades. An indicator which asks for the trades of the history is treated as a desktop one. Use `CallHandler.RT` and take the history from the totals of the bars (`VolTotList`, volume by price).
 
+## Local indicators only
+
+`VAn.SetDebugValue()` is for development: its values are kept only for a local indicator, and a package which uses it is not published at all. Remove the calls before you publish.
+
 ## Mixing indicators
 
-The rule applies to the package, not to the single indicator. Keep the desktop only indicators in a separate dll when you want the others to be calculated on the server.
+The rule applies to the package, not to the single indicator. Keep the desktop only indicators in a separate dll when you want the others to be calculated on the server. The examples do this with their folders: `src/Deepchart/DesktopOnly` (the order book) and `src/Deepchart/Trading` (the trading interface) hold the desktop ones.

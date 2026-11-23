@@ -1,0 +1,80 @@
+---
+title: "Indicator"
+description: "The base class of a Deepdom indicator."
+---
+
+`VolBookAPI.Indicators.Indicator` (in `VolBookAPI.dll`) is the class every indicator derives from.
+
+## Registration and construction
+
+```csharp
+public static IndicatorDescriptionBase Register()
+```
+
+A static method the indicator must declare. Deepdom finds the indicators of a dll by it.
+
+| `IndicatorDescriptionBase` | Meaning |
+|---|---|
+| `Name` | name in the indicator list |
+| `Description` | short text shown with the name |
+| `HelpLink` | address of a help page |
+| `Tags` | words used by the search of the list |
+
+```csharp
+public MyIndicator(BaseIndicatorPrms p_ind_p, int p_id) : base(p_ind_p, p_id) { }
+```
+
+The constructor with the parameters and the id is required: Deepdom creates the indicator with it. Keep it empty and do the work in `OnSet` and `OnLoad`.
+
+## What the indicator works with
+
+| Member | Type | Meaning |
+|---|---|---|
+| `Vbk` | `IMethodAPI` | the [chart API](/deepdom/reference/chart-api). `null` while `OnSet` runs with `setDefault` |
+| `CA` | `ChartAreaRef?` | the area created with `CreateCA`, `null` before |
+| `IndPrms` | `BaseIndicatorPrms` | the calls the indicator wants and its settings, see below |
+| `CASize` | `float` | height of the area of the indicator, in pixels. Kept up to date by the chart |
+| `OnSetPriority` | `int` | order of `OnSet` among the indicators of the chart, lowest first |
+
+## Methods to override
+
+| Method | Called | Asked for with |
+|---|---|---|
+| `OnSet(bool setDefault, bool haveToChangeTheme)` | when the indicator is created and before every load. The only one you must override | always |
+| `OnInit()` | once per load, before the bars | any call below |
+| `OnLoad(bool isFull)` | before the first bar. `isFull` is `true` on the first load of the chart | any call below |
+| `OnOpen(bool isRt)` | a new bar | `IndPrms.OnOpenCall` |
+| `OnBook(DateTime exDt, IEnumerable<BookInfo> mbpUpdates, IEnumerable<MboInfo> mboUpdates, bool isRt)` | a group of updates of the order book | `IndPrms.OnBookCall` |
+| `OnBookClose(bool isRt)` | the book of a bar is complete | `IndPrms.OnCloseCall` |
+| `OnTick(TickByTick newTick, bool isRt, bool isNewDay, AggrInfo aggrInfo)` | a trade. `isNewDay` is not used | `IndPrms.OnTickCall` |
+| `OnIniParallelTick(int indCore, int tickBaseIndex, TickByTick newTick, AggrInfo aggrInfo)` | a trade before the first bar, in parallel per core | `IndPrms.OnTickCall = Full` |
+| `OnTickClose(bool isRt)` | the trades of a bar are complete | `IndPrms.OnCloseTickCall` |
+| `OnEnd(bool isRt)` | after the history, and after every batch of realtime updates | `IndPrms.OnEndCall` |
+| `OnResizeAxis(bool isFinal)` | the axes have been resized | `IndPrms.OnResizeCall` |
+| `OnSaveProperty()` | the settings are about to be saved | always |
+| `OnChartBuildTooltip(int CAIndex, int IndX, double Price)` | the tooltip of a bar is built. Return a line or `null` | always |
+
+See [Life cycle](/deepdom/concepts/lifecycle) for the order.
+
+## Helpers
+
+| Method | Meaning |
+|---|---|
+| `CreateCA(bool isVertical, string description, bool? syncroX = null, bool? syncroY = null)` | creates the area of the indicator and returns its reference. A horizontal area shares the X axis with the chart, a vertical one the Y axis |
+
+## BaseIndicatorPrms
+
+Set in `OnSet`:
+
+| Property | Meaning |
+|---|---|
+| `OnOpenCall`, `OnBookCall`, `OnCloseCall`, `OnTickCall`, `OnCloseTickCall`, `OnEndCall`, `OnResizeCall` | which calls the indicator wants: `Off`, `RT`, `HistRT`, `Full` (`OnTickCall` only) |
+| `ChartSupportMode` | the chart the indicator is for: `Heatmap` (the default) or `ChartDom`. The calls are made when the chart is in that mode |
+
+Read only:
+
+| Property | Meaning |
+|---|---|
+| `name`, `id` | name and id of the indicator on the chart |
+| `Hidden` | the user has hidden the indicator |
+| `CASize` | height of its area |

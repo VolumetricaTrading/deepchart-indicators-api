@@ -59,6 +59,28 @@ ColorRef mixed = VAn.GetFadedColor(color, SqueezeColor, 0.7);
 
 Both keep the references: a fade between a series color and a parameter still follows both.
 
+### Changes bound to a parameter
+
+Four changes can take their value from a parameter of the indicator, so the user changes them without a new calculation (see [Parameters resolved by the chart](/concepts/parameters#parameters-resolved-by-the-chart)):
+
+| Change | Effect | Parameter |
+|---|---|---|
+| `WithOpacityScale(percent)` | multiplies the opacity: `100` leaves it as it is, `50` halves it, `200` doubles it (never over 255) | `PlotIntRef` |
+| `WithOpacityWhen(flag, alpha)` | the opacity `alpha` while `flag` is true, the opacity of the color while it is false | `PlotBoolRef` |
+| `WithEnable(flag)` | the color is not drawn while `flag` is false | `PlotBoolRef` |
+| `VAn.GetFadedColorPercent(from, to, percent)` | a mix of two colors: `0` is the first, `100` the second | `PlotIntRef` |
+
+```csharp
+[VolCustom(MinValue = 0, MaxValue = 200)]
+public PlotIntRef FillOpacity { get; set; } = 100;
+public PlotBoolRef FillBoxes { get; set; } = true;
+
+// ...
+box.BackColor = BoxColor.WithOpacity(60).WithOpacityScale(FillOpacity).WithEnable(FillBoxes);
+```
+
+Call them in this order: `WithOpacity`, `WithOpacityScale`, `WithOpacityWhen`, `WithEnable`. Each one drops what the ones after it have set: a `WithOpacity` called last removes the other three. With a plain value instead of a parameter, the change is applied at once.
+
 ## Defaults for series and parameters
 
 Use theme colors as defaults, so the indicator looks right on every theme the first time it is added:
@@ -68,7 +90,7 @@ PrimaryColor = IMethodAPI.GetColorRefForTheme(ColorReferenceEnum.Up, ColorTypeEn
 ```
 
 <Warning>
-  Do not use `IMethodAPI.GetColorForTheme`: it returns the resolved color and exists only on the desktop. `GetColorRefForTheme` returns the reference and works everywhere.
+  Do not use `IMethodAPI.GetColorForTheme`: it returns the resolved color and exists only on the desktop. `GetColorRefForTheme` returns the reference and works everywhere. `VAn.GetChartBackColor()`, the background the user set for the chart, is desktop only too: on the server it is `Transparent`.
 </Warning>
 
 ## Where colors are used

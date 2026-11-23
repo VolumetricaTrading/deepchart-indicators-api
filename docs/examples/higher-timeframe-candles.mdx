@@ -1,0 +1,85 @@
+---
+title: "Higher Timeframe Candles"
+description: "The bars of another resolution of the symbol, drawn as candles colored by delta."
+---
+
+**Source:** `src/Deepchart/Data/HigherTimeframeCandles.cs` · **Calculated on:** desktop or server (on the server only the resolution of the chart is available for now)
+
+The 30 minutes bars on a 5 minutes chart, or any other resolution the user chooses, drawn in an area of their own. Each candle is as wide as the bars of the chart it covers, and its colors come from its delta.
+
+## What it shows
+
+- `RequestResolution` in `OnInit`, and the totals of another resolution.
+- How to find the bar of the resolution a bar of the chart belongs to.
+- A candle drawn as an annotation across several bars, and a series with four values per point.
+- `ForceHidden`: a series which holds the values but is not drawn.
+
+## The request
+
+```csharp
+public override void OnInit()
+{
+    htf = VAn.RequestResolution(ParamType, Param1, Param2,
+        DaysToLoad > 0 ? DaysToLoad : null,
+        ParamType <= ChartResolutionInfo.ParamTypeEnum.Montly ? true : null);
+    htf.AddNewFilter(0, 0, DataInputTypeEnum.Volume, VbpType.Bar, 0, false);
+}
+```
+
+The resolution is a parameter, described like the one of a chart: a type and two values. Time based bars are built from the minute data (`BasedOnMinute`), which is lighter than the trades. The filter asks for the totals of the bars, which another resolution does not have by itself. Nothing is read here: the bars arrive with the history. See [Other resolutions](/concepts/resolutions).
+
+## Following the bars
+
+At every call the indicator looks for the bar of the resolution the current bar of the chart belongs to, by exchange time:
+
+```csharp
+private BarClass Find(DateTime exchDt)
+{
+    if (!htf.HasBar || exchDt < htf.BarVars[0].exchDt)
+        return null;
+    return htf.BarVars[htf.FindBarIndexByExchDt(exchDt)];
+}
+```
+
+When it changes, the candle of the previous bar is closed and a new one starts:
+
+```csharp
+var found = Find(VAn.BarVars[index].exchDt);
+if (found == htfBar)
+    return;
+if (candle != null)
+    candle.X2 = index + 0.4;
+htfBar = found;
+candle = VAn.CreateAnnotation(AnnotationType.Candlestick);
+candle.Area = ChartArea;
+candle.X = index + 0.6;
+VAn.AddAnnotation(IndVars.Ann_List, candle);
+```
+
+A bar of the chart is one unit wide, from `index + 0.5` to `index + 1.5`: a candle from `0.6` to `1.4` leaves a small gap on each side. `Update` then writes the values of the bar as it is now: open, close (`Y` and `Height`), low (`Y2`), high (`Y3`), and moves `X2` to the current bar.
+
+## The colors
+
+```csharp
+var totals = htfBar.VolTotList?.Length > 0 ? htfBar.VolTotList[0] : null;
+double delta = totals == null ? htfBar.Close - htfBar.Open
+    : DeltaInput == DeltaInputEnum.Volume ? totals.AskVol - totals.BidVol : totals.AskNTVol - totals.BidNTVol;
+ColorRef fill = delta >= 0 ? Candles.ThirdColor : Candles.FourthColor;
+ColorRef border = borderUp ? Candles.PrimaryColor : Candles.SecondaryColor;
+```
+
+The four colors of the series are the colors of the candles, so the user changes them in the settings of the series: border up and down, fill up and down. The fill follows the delta, the border follows the delta too, or the direction of the bar with `Border by open and close`.
+
+## Things to notice
+
+- With the Candlestick style the series is `ForceHidden`: it holds the four values of every bar, and gives the axis its range, but the candles are the annotations. With the Line style the series is drawn and shows the close.
+- The area is a new one: `OnSet` puts the indicator in area 2 the first time, and the axis takes the tick size and the decimals of the symbol from the first bar found.
+- In the history every bar of the resolution is already complete: the candle of a 30 minutes bar has its final values from the first 5 minutes bar it covers. Fine for drawing, not for a signal. See [Looking ahead](/concepts/resolutions#looking-ahead).
+- Daily bars with the days of a minutes chart are few: raise `Days to load`.
+- `OnEnd` widens the axis to the last candle: the annotations do not count for the automatic range.
+
+## Try
+
+- Add a second resolution and write its close in a label.
+- Hide the candle of the bar of the resolution still open, and show only the complete ones.
+- Ask for the 1 minute bars on a tick based chart, and count how many minutes each bar of the chart covers.

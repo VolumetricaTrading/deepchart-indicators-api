@@ -3,7 +3,7 @@ title: "Project setup"
 description: "What the project file does, line by line."
 ---
 
-`src/DeepchartIndicators.csproj` is a plain class library. You can keep adding indicators to it, or copy it to start a library of your own.
+`src/Deepchart/DeepchartIndicators.csproj` is a plain class library. You can keep adding indicators to it, or copy it to start a library of your own: the repository [VolumetricaTrading/deepchart-indicators-api](https://github.com/VolumetricaTrading/deepchart-indicators-api) is meant as the template.
 
 ## Target and references
 
@@ -45,7 +45,7 @@ Do not add references to the chart control or to WPF. An indicator which needs t
 Each one can be changed in the file or on the command line:
 
 ```bash
-dotnet build src/DeepchartIndicators.csproj -p:DeepchartDevId=your-id -p:OutputPath="C:\temp\out\\"
+dotnet build src/Deepchart/DeepchartIndicators.csproj -p:DeepchartDevId=your-id -p:OutputPath="C:\temp\out\\"
 ```
 
 The build stops with a clear error when the two libraries are not in `DeepchartDir`, and warns when the developer id is still the placeholder.

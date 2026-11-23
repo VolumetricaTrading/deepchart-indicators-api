@@ -32,7 +32,9 @@ The totals in `VolTotList[0]` (`InfoVolClass`):
 | `MaxDeltaVol`, `MinDeltaVol` | highest and lowest delta reached during the bar |
 | `VwapPrice` | volume weighted average price of the bar |
 
-Never read bars after `VAn.BarIndex` during the history: they are not there yet.
+Never read bars after `VAn.BarIndex` during the history. On the desktop they are not there yet. On the server they can already be there: an indicator which reads them sees the future, and its history no longer matches what it calculates in realtime.
+
+The bars of another resolution of the symbol (the 30 minutes bars on a 5 minutes chart) are asked for with `RequestResolution`, see [Other resolutions](/concepts/resolutions).
 
 ## Prices as integer ticks
 

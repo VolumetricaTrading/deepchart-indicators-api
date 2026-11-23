@@ -1,0 +1,73 @@
+---
+title: "Introduction"
+description: "Write your own indicators for Deepdom in C#."
+---
+
+A Deepdom indicator is a C# class in a dll. Deepdom loads the dll, lists the indicators it contains, and lets you add them to a chart like the built-in ones: with their parameters in the settings window, their series and annotations on the chart, and their state saved in the workspace.
+
+The repository [VolumetricaTrading/deepchart-indicators-api](https://github.com/VolumetricaTrading/deepchart-indicators-api) holds a ready-to-build project for Deepdom in `src/Deepdom`, with five small example indicators, and these pages explain how each part works. Clone it to start your own library.
+
+## What you write
+
+An indicator derives from `VolBookAPI.Indicators.Indicator` and has four parts:
+
+- a static `Register()` method which says how the indicator is listed;
+- **parameters**: its public properties;
+- **series** and **annotations**: what it draws, created through the chart API (`Vbk`);
+- the **calls of the chart** it overrides (`OnOpen`, `OnTick`, `OnBook`, ...), where it calculates.
+
+```csharp
+public class BarDelta : Indicator
+{
+    public static IndicatorDescriptionBase Register() =>
+        new IndicatorDescriptionBase { Name = "Example - Bar Delta" };
+
+    public int MinVolume { get; set; } = 0;
+
+    IChartSeries delta;
+
+    public BarDelta(BaseIndicatorPrms p_ind_p, int p_id) : base(p_ind_p, p_id) { }
+
+    public override void OnSet(bool setDefault, bool haveToChangeTheme)
+    {
+        IndPrms.OnOpenCall = CallHandler.HistRT;
+        IndPrms.OnCloseTickCall = CallHandler.HistRT;
+        if (setDefault)
+            return;
+        delta = Vbk.AddSeries(CreateCA(false, "Delta"), "Delta", SeriesType.Bars);
+    }
+    // OnOpen, OnTickClose ...
+}
+```
+
+## Deepdom and Deepchart
+
+The two products share the drawing interfaces (`IChartSeries`, `IChartPoint`, `IAnnotation`, `IAnnGroup`, `IAxis`), the colors (`ColorRef`) and the parameter attributes, so what you learn for one holds for the other. The rest differs, because the charts differ:
+
+| | Deepdom | Deepchart |
+|---|---|---|
+| Library | `VolBookAPI.dll` | `VolSysAPI.dll` |
+| Chart API | `Vbk` (`IMethodAPI`) | `VAn` (`IMethodCloudAPI`) |
+| Bars | `BookBars`: slices of time of the order book, with the trades of each one | `BarVars`: the bars of the chart |
+| Data | order book, trades, volume profile of the session | bars, volume by price, trades, other resolutions |
+| Series | created with `Vbk.AddSeries` | declared with an attribute |
+| Where it is calculated | the chart of the user | the chart of the user, or the Deepchart server |
+
+A Deepdom indicator is always calculated on the desktop: there is no server side, so everything in the API is available to it.
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" href="/deepdom/quickstart">
+    Build the examples and see them on a chart.
+  </Card>
+  <Card title="Life cycle" href="/deepdom/concepts/lifecycle">
+    Which methods the chart calls, and when.
+  </Card>
+  <Card title="Examples" href="/deepdom/examples/bar-delta">
+    Five indicators, one concept each.
+  </Card>
+  <Card title="API reference" href="/deepdom/reference/indicator">
+    Every member an indicator can use.
+  </Card>
+</CardGroup>
